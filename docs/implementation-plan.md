@@ -22,7 +22,7 @@ Unicode refresh under a non-UTF-8 locale, install portability, history preservat
 overlap and travel-gap detection. Skill quick validation passed. Independent review
 identified locale-dependent text IO; corrected and covered by a failing-then-passing test.
 No personal rows or author filesystem paths found in the bundled database.
-GitHub Actions is configured for Python 3.9/3.13 on Linux/macOS/Windows but has not run.
+GitHub Actions is configured for Python 3.13/3.14 on Linux/macOS/Windows.
 Live website refresh and native agent discovery have not been exercised in this session.
 
 Follow-up: added universal INSTALL.md, Codex AGENTS.md and Claude Code CLAUDE.md
