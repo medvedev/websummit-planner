@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.DS_Store
+.venv/
+out/
+*.db
+!skills/websummit-planner/assets/websummit.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.db.new
