@@ -141,6 +141,90 @@ class PlannerTest(unittest.TestCase):
             self.run_cli('refresh', '--json', str(source), ok=False)
             self.assertEqual(self.state.read_bytes(), before)
 
+    def test_side_events_separate_by_default_and_shortlistable(self):
+        official = self.run_cli('search', '--limit', '100')
+        self.assertTrue(all(r['kind'] == 'official' for r in official))
+        side = self.run_cli('search', '--kind', 'side', '--limit', '100')
+        self.assertEqual(len(side), 100)
+        self.assertTrue(all(r['id'].startswith('side:') for r in side))
+        both = self.run_cli('search', '--kind', 'all', '--day', '2026-11-10', '--limit', '1000')
+        self.assertEqual({r['kind'] for r in both}, {'official', 'side'})
+        info = self.run_cli('info')
+        self.assertEqual((info['sessions'], info['side_events']), (1122, 344))
+        d = self.run_cli('details', side[0]['id'])[0]
+        self.assertEqual(d['side_event']['session_id'], side[0]['id'])
+        self.assertTrue(d['side_event']['url'].startswith('https://'))
+        self.run_cli('mark', side[0]['id'], 'maybe')
+        self.assertEqual(self.run_cli('shortlist')[0]['kind'], 'side')
+
+    def test_side_event_conflicts_with_official_session(self):
+        side = self.run_cli('search', '--kind', 'side', '--day', '2026-11-10', '--limit', '1000')
+        official = {r['id']: r for r in self.run_cli('search', '--day', '2026-11-10', '--limit', '1000')}
+        pair = next((s, o) for s in side for o in official.values()
+                    if s['start'] < o['end'] and o['start'] < s['end'] and s['end'] > s['start'])
+        for r in pair:
+            self.run_cli('mark', r['id'], 'must')
+        kinds = [(c['a_id'], c['b_id'], c['kind']) for c in self.run_cli('conflicts')]
+        self.assertIn(tuple(sorted([pair[0]['id'], pair[1]['id']])) + ('overlap',), kinds)
+
+    def test_old_personal_database_is_upgraded_in_place(self):
+        old = Path(self.tmp.name) / 'old.db'
+        with closing(sqlite3.connect(SKILL / 'assets/websummit.db')) as src, closing(sqlite3.connect(old)) as dst:
+            src.backup(dst)
+            dst.executescript("DROP VIEW v_titles; DROP VIEW v_session_full; DROP TABLE side_event;"
+                              "DELETE FROM session WHERE id LIKE 'side:%'; DELETE FROM stage WHERE id LIKE 'side:%';"
+                              "DELETE FROM track WHERE name='Side event';"
+                              "CREATE VIEW v_titles AS SELECT s.id,s.day,'' start,'' end,'' stage,s.track,s.title FROM session s;"
+                              "CREATE VIEW v_session_full AS SELECT s.id,s.day,'' start,'' end,'' stage,s.track,s.title,'' description,'' speakers,"
+                              "NULL shortlist_status,NULL score,NULL note FROM session s;")
+            sid = dst.execute('SELECT id FROM session LIMIT 1').fetchone()[0]
+            dst.execute("INSERT INTO shortlist_version(session_id,status,note) VALUES (?, 'must', 'old note')", (sid,))
+            dst.commit()
+        self.state = old
+        info = self.run_cli('info')
+        self.assertEqual(info['side_events'], 344)
+        self.assertEqual(self.run_cli('history', sid)[0]['note'], 'old note')
+        self.assertEqual(len(self.run_cli('search', '--kind', 'side', '--limit', '5')), 5)
+
+    def test_refresh_keeps_side_events_and_their_history(self):
+        sid = self.run_cli('search', '--limit', '1')[0]['id']
+        side = self.run_cli('search', '--kind', 'side', '--limit', '1')[0]['id']
+        self.run_cli('mark', side, 'must')
+        source = Path(self.tmp.name) / 's.json'
+        source.write_text(json.dumps([{'id': sid, 'slug': 'x', 'title': 'X', 'starts_at': '2026-11-09T18:00:00Z',
+                                       'ends_at': '2026-11-09T18:30:00Z', 'location': {'id': 'l', 'name': 'L'}}]))
+        self.run_cli('refresh', '--json', str(source))
+        self.assertEqual(self.run_cli('info')['side_events'], 344)
+        self.assertEqual(self.run_cli('shortlist')[0]['id'], side)
+
+    def test_import_side_events_filters_and_is_idempotent(self):
+        sys.path.insert(0, str(SKILL / 'scripts'))
+        import import_side_events as ise
+        db = Path(self.tmp.name) / 'e.db'
+        db.write_bytes((SKILL / 'assets/websummit.db').read_bytes())
+        ev = lambda slug, **kw: {'name': slug, 'description': 'd', 'startDate': '2026-11-10T14:00:00+00:00',
+                                 'url': 'https://example.org/events/' + slug, 'location': {'@type': 'Place', 'name': 'V'},
+                                 'offers': {'price': '5', 'priceCurrency': 'EUR'}, **kw}
+        events = [ev('keep-one', endDate='2026-11-10T15:00:00+00:00'), ev('keep-two', inLanguage='en'), ev('drop-me', inLanguage='ru')]
+        self.assertEqual(ise.import_events(db, events), 2)
+        self.assertEqual(ise.import_events(db, events), 2)
+        with closing(sqlite3.connect(db)) as c:
+            self.assertIsNone(c.execute("SELECT 1 FROM session WHERE id='side:drop-me'").fetchone())
+            self.assertEqual(c.execute("SELECT end_known FROM side_event WHERE session_id='side:keep-two'").fetchone()[0], 0)
+            self.assertEqual(c.execute("SELECT duration_min FROM session WHERE id='side:keep-one'").fetchone()[0], 60)
+
+    def test_export_keeps_timestamps_and_creates_parent_directory(self):
+        sid = self.run_cli('search', '--limit', '1')[0]['id']
+        self.run_cli('mark', sid, 'must')
+        plan = Path(self.tmp.name) / 'new/dir/plan.json'
+        self.run_cli('export', '--out', str(plan))
+        data = json.loads(plan.read_text(encoding='utf-8'))
+        data['history'][0]['created_at'] = '2026-01-02T03:04:05Z'
+        plan.write_text(json.dumps(data), encoding='utf-8')
+        self.state = Path(self.tmp.name) / 'fresh2.db'
+        self.run_cli('import', str(plan))
+        self.assertEqual(self.run_cli('history', sid)[0]['created_at'], '2026-01-02T03:04:05Z')
+
     def test_tight_gap_and_same_stage_behavior(self):
         source = Path(self.tmp.name) / 'fixture.json'
         items = []

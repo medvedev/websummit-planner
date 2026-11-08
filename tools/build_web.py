@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build the web distribution into dist/: skill ZIP, text exports, llms.txt, landing page.
 
-Usage: tools/build_web.py [--out dist]
+Usage: tools/build_web.py [--out dist] [--base-url URL]
 Host links (Custom GPT, Gem, MCP URL) are optional env vars; cards without one say "coming soon".
   WS_GPT_URL, WS_GEM_URL, WS_MCP_URL
 """
@@ -18,6 +18,7 @@ SKILL = ROOT / 'skills' / 'websummit-planner'
 sys.path.insert(0, str(SKILL / 'scripts'))
 from export_text import export  # noqa: E402
 
+MARKER = '.websummit-build'
 SKIP_DIRS = {'__pycache__', 'tests'}
 SKIP_SUFFIX = {'.pyc', '.pyo', '.db-journal', '.db-wal', '.db-shm'}
 
@@ -49,9 +50,10 @@ Rules for the assistant:
   overlaps (and tight gaps between different stages).
 
 Files:
-- [schedule-compact.md](schedule-compact.md): one line per session
+- [schedule-compact.md]({base}schedule-compact.md): one line per session
 {day_links}
-- [schedule.json](schedule.json): the same data as JSON
+- [side-events.md]({base}side-events.md): community side events (7-14 Nov, ids start with `side:`), with venue, price and link
+- [schedule.json]({base}schedule.json): the same data as JSON (each row has `kind`: official or side)
 """
 
 
@@ -89,7 +91,7 @@ def build_index(links):
 .card{{border:1px solid #8885;border-radius:8px;padding:1rem;margin:1rem 0}}.btn{{display:inline-block;padding:.5rem 1rem;background:#2563eb;color:#fff;border-radius:6px;text-decoration:none}}
 .soon{{opacity:.6}}.note,footer{{font-size:.85rem;opacity:.8}}code{{word-break:break-all}}</style></head><body>
 <h1>Web Summit Lisbon 2026 Planner</h1>
-<p>Search the 9–12 Nov schedule and plan your days from the AI assistant you already use. Unofficial.</p>
+<p>Search the 9–12 Nov schedule (plus community side events, 7–14 Nov) and plan your days from the AI assistant you already use. Unofficial.</p>
 {''.join(cards)}
 <footer><p>Unofficial project, not affiliated with or endorsed by Web Summit. Schedule data from websummit.com
 (snapshot, may change); see <a href="DATA_NOTICE.md">data notice</a>. Takedown requests: open an issue on the repository
@@ -99,16 +101,24 @@ and the data will be removed.</p></footer></body></html>"""
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--out', type=Path, default=ROOT / 'dist')
-    out = p.parse_args().out
+    p.add_argument('--base-url', default=os.environ.get('WS_BASE_URL', 'https://medvedev.github.io/websummit-planner/'),
+                   help='public URL where dist/ is served (used for absolute links in llms.txt)')
+    a = p.parse_args()
+    out = a.out
     if out.exists():
+        # Only wipe a directory this script created (or an empty one).
+        if any(out.iterdir()) and not (out / MARKER).exists():
+            sys.exit(f'Refusing to delete {out}: not empty and not a previous build output')
         shutil.rmtree(out)
     out.mkdir(parents=True)
+    (out / MARKER).write_text('build_web.py output; safe to delete\n')
     info = export(out)
     build_zip(out / 'websummit-planner.zip')
     shutil.copy(ROOT / 'DATA_NOTICE.md', out / 'DATA_NOTICE.md')
-    day_links = '\n'.join(f'- [schedule-{d}.md](schedule-{d}.md): full descriptions for {d}' for d in info['days'])
-    (out / 'llms.txt').write_text(LLMS.format(day_links=day_links), encoding='utf-8')
-    (out / 'index.html').write_text(build_index({'llms': 'llms.txt'}), encoding='utf-8')
+    base = a.base_url.rstrip('/') + '/'
+    day_links = '\n'.join(f'- [schedule-{d}.md]({base}schedule-{d}.md): full descriptions for {d}' for d in info['days'])
+    (out / 'llms.txt').write_text(LLMS.format(day_links=day_links, base=base), encoding='utf-8')
+    (out / 'index.html').write_text(build_index({'llms': base + 'llms.txt'}), encoding='utf-8')
     print(f'built {out}: {info["sessions"]} sessions')
 
 

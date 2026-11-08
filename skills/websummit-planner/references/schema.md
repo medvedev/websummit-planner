@@ -8,6 +8,8 @@ The full DDL is in `scripts/build_db.py`; Python's `sqlite3` module is sufficien
 - `v_shortlist`: latest non-removed history version per session, including skips.
 - `v_conflicts`: a_id/a_title/a_start/a_end/a_stage and matching b fields, kind (`overlap`, `tight-gap`). Only maybe/must selections participate.
 
+`side_event` (schema_version 2): session_id (PK, FK to `session`), url, organizer, address, ticket_url, price, currency, is_free, online, end_known, language. Each side event is also a `session` row (id `side:<slug>`, track `Side event`, stage = venue, stage id `side:<venue>`), so shortlist and `v_conflicts` cover them. `v_titles` / `v_session_full` have a `kind` column (`official` | `side`). If `end_known=0`, the source gave no end and `ends_*` equals `starts_*`.
+
 `shortlist_version`: version, session_id, status, score, note, created_at, created_by.
 Insert a complete new version; UPDATE and DELETE are blocked by triggers.
 Set `PRAGMA foreign_keys=ON` on any direct writable connection. Parameterize user input.

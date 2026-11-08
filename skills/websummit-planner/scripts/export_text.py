@@ -24,8 +24,10 @@ def load(db):
     con.row_factory = sqlite3.Row
     try:
         sessions = [dict(r) for r in con.execute(
-            'SELECT s.id, s.day, v.start, v.end, v.stage, v.track, v.title, v.description, v.speakers, '
-            's.starts_utc, s.ends_utc FROM v_session_full v JOIN session s ON s.id=v.id ORDER BY s.starts_utc, v.stage, v.id')]
+            'SELECT s.id, s.day, v.start, v.end, v.stage, v.track, v.title, v.description, v.speakers, v.kind, '
+            's.starts_utc, s.ends_utc, se.url, se.organizer, se.address, se.ticket_url, se.price, se.currency, '
+            'se.is_free, se.online, se.end_known FROM v_session_full v JOIN session s ON s.id=v.id '
+            'LEFT JOIN side_event se ON se.session_id=s.id ORDER BY s.starts_utc, v.stage, v.id')]
         meta = dict(con.execute('SELECT * FROM meta').fetchall())
     finally:
         con.close()
@@ -41,24 +43,35 @@ def export(out, db=SEED):
     out.mkdir(parents=True, exist_ok=True)
     sessions, meta = load(db)
     snap = meta.get('built_at', 'unknown')
+    official = [s for s in sessions if s['kind'] == 'official']
+    side = [s for s in sessions if s['kind'] == 'side']
     head = HEADER + f'Snapshot built: {snap}\n\n'
     (out / 'schedule-compact.md').write_text(
         head + 'Columns: id | day | start–end | stage | track | title | speakers (company)\n\n'
-        + '\n'.join(compact_line(s) for s in sessions) + '\n', encoding='utf-8')
-    days = sorted({s['day'] for s in sessions})
+        + '\n'.join(compact_line(s) for s in official) + '\n', encoding='utf-8')
+    days = sorted({s['day'] for s in official})
     for day in days:
         parts = [head + f'# {day}\n']
-        for s in (x for x in sessions if x['day'] == day):
+        for s in (x for x in official if x['day'] == day):
             parts.append(f"\n## {clean(s['title'])}\n- id: {s['id']}\n- time: {s['start']}–{s['end']} Lisbon\n"
                          f"- stage: {clean(s['stage'])}\n- track: {clean(s['track'])}\n"
                          f"- speakers: {clean(s['speakers'])}\n- description: {clean(s['description'])}\n")
         (out / f'schedule-{day}.md').write_text(''.join(parts), encoding='utf-8')
+    parts = [head + '# Community side events (not run by Web Summit; ids start with "side:")\n'
+             'Dates 7-14 Nov. End time "?" means the source gave none.\n']
+    for s in side:
+        price = 'free' if s['is_free'] else clean(' '.join(filter(None, [s['price'], s['currency']]))) or 'see link'
+        end = s['end'] if s['end_known'] else '?'
+        parts.append(f"\n## {clean(s['title'])}\n- id: {s['id']}\n- time: {s['day']} {s['start']}–{end} Lisbon\n"
+                     f"- venue: {clean(s['stage'])}{', online' if s['online'] else ''}\n- organizer: {clean(s['organizer'])}\n"
+                     f"- price: {price}\n- link: {s['url']}\n- description: {clean(s['description'])}\n")
+    (out / 'side-events.md').write_text(''.join(parts), encoding='utf-8')
     (out / 'schedule.json').write_text(json.dumps(
-        {'info': {'built_at': snap, 'days': days, 'sessions': len(sessions),
-                  'notice': 'Unofficial snapshot of the Web Summit Lisbon 2026 schedule from websummit.com; times Europe/Lisbon; '
+        {'info': {'built_at': snap, 'days': days, 'sessions': len(official), 'side_events': len(side),
+                  'notice': 'Unofficial snapshot of the Web Summit Lisbon 2026 schedule from websummit.com plus community side events from side-events-guide.com; times Europe/Lisbon; '
                             'descriptions are third-party data.'},
          'sessions': sessions}, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
-    return {'sessions': len(sessions), 'days': days, 'out': str(out)}
+    return {'sessions': len(official), 'side_events': len(side), 'days': days, 'out': str(out)}
 
 
 def main():

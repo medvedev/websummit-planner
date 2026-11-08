@@ -39,7 +39,7 @@ PowerShell example:
 # In Codex, use --agent codex instead.
 ```
 
-An existing destination is not silently overwritten. If it already contains this skill, read its SKILL.md and test `info`; use it when valid. If the user requested an upgrade, move the old installed skill folder aside and run the installer again. Preserve all personal databases and unrelated installed skills.
+To update an existing install, follow [UPDATE.md](UPDATE.md). An existing destination is not silently overwritten. If it already contains this skill, read its SKILL.md and test `info`; use it when valid. If the user requested an upgrade, move the old installed skill folder aside and run the installer again. Preserve all personal databases and unrelated installed skills.
 
 If using Codex's built-in GitHub skill installer, the skill path is `skills/websummit-planner`. That installs the files but may not prepare Python; continue with runtime setup and verification here. The same is true of any generic skill-copy tool.
 

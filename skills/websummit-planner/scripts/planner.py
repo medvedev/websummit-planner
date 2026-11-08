@@ -50,6 +50,23 @@ def initialize(path):
         os.unlink(temporary)
 
 
+def upgrade(path):
+    """Add side-event support to a personal database created from an older snapshot (in place, one transaction)."""
+    from build_db import side_upgrade_sql
+    with connect(path) as con:
+        if con.execute("SELECT 1 FROM sqlite_master WHERE name='side_event'").fetchone():
+            return
+        con.executescript('BEGIN;' + side_upgrade_sql())
+        con.execute('ATTACH ? AS seed', (str(SEED),))
+        con.execute("INSERT OR IGNORE INTO stage SELECT * FROM seed.stage WHERE id LIKE 'side:%'")
+        con.execute("INSERT OR IGNORE INTO track SELECT * FROM seed.track WHERE name='Side event'")
+        con.execute('INSERT OR IGNORE INTO session SELECT * FROM seed.session WHERE id IN (SELECT session_id FROM seed.side_event)')
+        con.execute('INSERT OR IGNORE INTO side_event SELECT * FROM seed.side_event')
+        con.execute("INSERT OR REPLACE INTO meta VALUES ('schema_version','2')")
+        con.commit()
+        con.execute('DETACH seed')
+
+
 def refresh(path, json_path=None):
     """Build and validate in a temporary directory before replacing personal state."""
     from build_db import build
@@ -74,6 +91,7 @@ def refresh(path, json_path=None):
         old = path if path.exists() else SEED
         ids = {item['id'] for item in items}
         with connect(old, True) as con:
+            ids |= {r[0] for r in con.execute('SELECT session_id FROM side_event')}
             missing = [r[0] for r in con.execute('SELECT DISTINCT session_id FROM shortlist_version') if r[0] not in ids]
         if missing:
             raise ValueError('Refresh would discard shortlist history for missing sessions; database unchanged: ' + ', '.join(missing))
@@ -116,10 +134,13 @@ def import_plan(path, plan_path):
         score = e.get('score')
         if score is not None and (not isinstance(score, int) or isinstance(score, bool) or not 1 <= score <= 5):
             raise ValueError('Plan has an invalid score for ' + e['session_id'])
-        entries.append((e['session_id'], e['status'], score, e.get('note') or '', e.get('created_by')))
+        created = e.get('created_at')
+        if created is not None and not isinstance(created, str):
+            raise ValueError('Plan has an invalid timestamp for ' + e['session_id'])
+        entries.append((e['session_id'], e['status'], score, e.get('note') or '', e.get('created_by'), created))
     initialize(path)
     with connect(path) as con:
-        con.executemany('INSERT INTO shortlist_version(session_id,status,score,note,created_by) VALUES (?,?,?,?,?)', entries)
+        con.executemany("INSERT INTO shortlist_version(session_id,status,score,note,created_by,created_at) VALUES (?,?,?,?,?,coalesce(?,strftime('%Y-%m-%dT%H:%M:%SZ','now')))", entries)
         con.execute("UPDATE setting SET value=? WHERE key='conflict_buffer_min'", (str(buffer),))
     return {'imported': len(entries), 'conflict_buffer_min': buffer}
 
@@ -135,6 +156,8 @@ def parser():
     s.add_argument('--track')
     s.add_argument('--stage')
     s.add_argument('--limit', type=int, default=30)
+    s.add_argument('--kind', choices=['official', 'side', 'all'], default='official',
+                   help='official Web Summit sessions (default), community side events, or both')
     d = sub.add_parser('details')
     d.add_argument('ids', nargs='+')
     sub.add_parser('shortlist')
@@ -162,6 +185,8 @@ def run(a):
     path = a.db.expanduser().resolve()
     if path == SEED.resolve():
         raise ValueError('--db must point to personal state, not the bundled snapshot')
+    if path.exists():
+        upgrade(path)
     if a.command == 'refresh':
         return refresh(path, a.json)
     if a.command == 'import':
@@ -179,7 +204,8 @@ def run(a):
             raise ValueError('--limit must be positive')
         if a.command == 'info':
             return {'database': str(source), 'personal_database': str(path),
-                    'sessions': con.execute('SELECT count(*) FROM session').fetchone()[0],
+                    'sessions': con.execute('SELECT count(*) FROM session WHERE id NOT IN (SELECT session_id FROM side_event)').fetchone()[0],
+                    'side_events': con.execute('SELECT count(*) FROM side_event').fetchone()[0],
                     'days': [r[0] for r in con.execute('SELECT DISTINCT day FROM session ORDER BY day')],
                     'metadata': dict(con.execute('SELECT * FROM meta')),
                     'settings': dict(con.execute('SELECT * FROM setting'))}
@@ -192,12 +218,19 @@ def run(a):
                 if value:
                     where.append(col + '=?')
                     params.append(value)
+            if a.kind != 'all':
+                where.append('v.kind=?')
+                params.append(a.kind)
             sql = 'SELECT v.* FROM v_titles v JOIN session s ON s.id=v.id LEFT JOIN stage st ON st.id=s.stage_id'
             if where:
                 sql += ' WHERE ' + ' AND '.join(where)
             return rows(con, sql + ' ORDER BY s.starts_utc,v.stage,v.id LIMIT ?', params + [a.limit])
         if a.command == 'details':
-            return rows(con, 'SELECT * FROM v_session_full WHERE id IN (' + ','.join('?' for _ in a.ids) + ') ORDER BY day,start,id', a.ids)
+            found = rows(con, 'SELECT * FROM v_session_full WHERE id IN (' + ','.join('?' for _ in a.ids) + ') ORDER BY day,start,id', a.ids)
+            for r in found:
+                if r['kind'] == 'side':
+                    r['side_event'] = rows(con, 'SELECT * FROM side_event WHERE session_id=?', (r['id'],))[0]
+            return found
         if a.command == 'shortlist':
             return rows(con, 'SELECT * FROM v_session_full WHERE shortlist_status IS NOT NULL ORDER BY day,start,id')
         if a.command == 'history':
@@ -209,6 +242,7 @@ def run(a):
                     'settings': {'conflict_buffer_min': int(dict(con.execute('SELECT * FROM setting'))['conflict_buffer_min'])},
                     'history': rows(con, 'SELECT session_id,status,score,note,created_at,created_by FROM shortlist_version ORDER BY version')}
             if a.out:
+                a.out.parent.mkdir(parents=True, exist_ok=True)
                 a.out.write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding='utf-8')
                 return {'exported': len(plan['history']), 'file': str(a.out)}
             return plan

@@ -4,9 +4,7 @@ on:
     branches: [main]
   workflow_dispatch:
 permissions:
-  contents: write
-  pages: write
-  id-token: write
+  contents: read
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -25,14 +23,42 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
-      - name: Release assets
-        if: github.ref == 'refs/heads/main'
-        run: gh release create web-2026-11-07 dist/websummit-planner.zip dist/schedule-*.md dist/schedule.json --title "Web distribution" --notes "Skill ZIP and text exports" || gh release upload web-2026-11-07 dist/websummit-planner.zip dist/schedule-*.md dist/schedule.json --clobber
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-files
+          path: |
+            dist/websummit-planner.zip
+            dist/schedule-*.md
+            dist/side-events.md
+            dist/schedule.json
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-files
+          path: release
+      - name: Publish release assets
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          # Fixed tag, moved to this commit; fail loudly on anything but "release already exists".
+          if gh release view web-latest >/dev/null 2>&1; then
+            gh release edit web-latest --target "$GITHUB_SHA"
+          else
+            gh release create web-latest --target "$GITHUB_SHA" --title "Web distribution (latest)" --notes "Skill ZIP and text exports"
+          fi
+          gh release upload web-latest release/* --clobber
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
     steps:

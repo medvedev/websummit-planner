@@ -4,6 +4,8 @@ For user requests to install or import this skill, follow [INSTALL.md](INSTALL.m
 It covers Codex, Claude Code, other hosts, and users without Python installed.
 Complete the runtime check and installed-skill smoke test before reporting success.
 
+When asked to update an installed copy, follow [UPDATE.md](UPDATE.md).
+
 For repository maintenance, follow the user's task; installation is not a prerequisite.
 Run `python3 -m unittest discover -s tests -v` for code changes.
 

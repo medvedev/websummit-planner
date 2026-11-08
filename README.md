@@ -1,6 +1,6 @@
 # Web Summit Planner — portable agent skill
 
-Plan Web Summit Lisbon **9–12 November 2026** in Codex, Claude Code, Gemini CLI, or another shell-capable agent. Includes **1,122 sessions**, speaker details, an empty personal shortlist, append-only decisions, and overlap/travel-gap checks.
+Plan Web Summit Lisbon **9–12 November 2026** in Codex, Claude Code, Gemini CLI, or another shell-capable agent. Includes **1,122 sessions**, **344 community side events** (7–14 Nov), speaker details, an empty personal shortlist, append-only decisions, and overlap/travel-gap checks.
 
 **You do not need Python preinstalled.** Ask your agent to follow [INSTALL.md](INSTALL.md): it can prepare a user-owned Python runtime automatically with uv, without administrator access or system Python changes. First-time runtime setup needs internet access; planning works offline afterward. Existing Python 3.9+ with SQLite and Lisbon timezone data also works. No API keys, accounts, MCP server, or Node.js are required. Optional schedule refresh needs internet access.
 
@@ -13,6 +13,14 @@ Paste this prompt into Codex, Claude Code, Gemini CLI, or another local agent:
 For Codex's built-in skill installer, specify **`skills/websummit-planner`** as the path inside the GitHub repository. The complete skill, including its database and scripts, is contained there.
 
 For Codex, add “Install for Codex” to the prompt; for Claude Code, add “Install for Claude Code”; for Gemini CLI, add “Install for Gemini CLI.” [AGENTS.md](AGENTS.md), [CLAUDE.md](CLAUDE.md) and [GEMINI.md](GEMINI.md) route those hosts to the same setup procedure. Other agents can follow [INSTALL.md](INSTALL.md) and choose their own skill folder. No personal-state initialization command is needed.
+
+## Update an installed copy
+
+Paste this into the same agent you used to install it:
+
+> Update my installed websummit-planner skill to the latest version from https://github.com/medvedev/websummit-planner. Follow UPDATE.md: keep my personal shortlist database untouched, move the old skill folder out of the skills directory, install the latest files, and verify with `info` and a side-event search. Then tell me what changed.
+
+Your shortlist, notes and settings are kept; your personal database is upgraded in place the first time the new version runs.
 
 ## Local installation
 

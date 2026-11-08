@@ -1,6 +1,6 @@
 ---
 name: websummit-planner
-description: Search the Web Summit Lisbon 2026 schedule, explore sessions and speakers, maintain a personal shortlist, and check timing and travel conflicts locally. Use for planning attendance on 9–12 November 2026.
+description: Search the Web Summit Lisbon 2026 schedule and community side events, explore sessions and speakers, maintain a personal shortlist, and check timing and travel conflicts locally. Use for planning attendance on 9–12 November 2026.
 ---
 
 Use the bundled offline SQLite snapshot through `scripts/planner.py`. Requires a usable Python 3.9+ runtime with SQLite and Europe/Lisbon timezone data. The user does not need Python preinstalled: [references/setup.md](references/setup.md) covers a user-owned managed runtime. After setup, no server, API key, or network access is needed for planning.
@@ -13,10 +13,15 @@ Resolve this SKILL.md's containing directory as the skill directory. Select an i
 python3 "<skill>/scripts/planner.py" info
 python3 "<skill>/scripts/planner.py" search --day 2026-11-10 --limit 40
 python3 "<skill>/scripts/planner.py" search "robotics"
+python3 "<skill>/scripts/planner.py" search "founders" --kind side
 python3 "<skill>/scripts/planner.py" details SESSION_ID
 ```
 
 `info` reports snapshot build time, available dates and state paths. State defaults to `~/.local/share/websummit-planner/2026.db`, respecting `XDG_DATA_HOME`; override with `WEBSUMMIT_DB` or `--db PATH` **before** the subcommand. Reads use the bundled snapshot until the first write initializes personal state. Installation does not require initialization. Use separate `--db` paths for separate people or plans.
+
+## Side events
+
+The snapshot also holds community side events (parties, breakfasts, meetups; 7–14 Nov, ids start with `side:`) from side-events-guide.com. They are not run by Web Summit. `search` lists official sessions by default; add `--kind side` or `--kind all`. They can be marked and conflict-checked like any session; `details` adds organizer, venue address, price and the link. Some side events list no end time (end equals start in `details.side_event.end_known = 0`): say the end is unknown. Many need separate registration; never claim availability. Offer side events when the user asks about networking, evenings or weekends.
 
 ## Web / sandbox use
 

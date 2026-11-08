@@ -82,6 +82,14 @@ CREATE TABLE setting (
 );
 INSERT INTO setting VALUES ('conflict_buffer_min', '0');   -- travel gap between different stages
 
+CREATE TABLE side_event (
+  session_id TEXT PRIMARY KEY REFERENCES session(id) ON DELETE CASCADE,
+  url TEXT, organizer TEXT, address TEXT, ticket_url TEXT,
+  price TEXT, currency TEXT, is_free INTEGER, online INTEGER NOT NULL DEFAULT 0,
+  end_known INTEGER NOT NULL DEFAULT 1,   -- 0: source gave no end time; end = start
+  language TEXT
+);
+
 CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 
 -- Latest version per session, excluding removed ones.
@@ -92,10 +100,13 @@ WHERE sv.version = (SELECT MAX(version) FROM shortlist_version WHERE session_id 
   AND sv.status <> 'removed';
 
 -- Compact list for title triage (this is the first thing to read).
+-- kind: 'official' Web Summit session, 'side' community side event (see side_event).
 CREATE VIEW v_titles AS
 SELECT s.id, s.day, substr(s.starts_local,12,5) AS start, substr(s.ends_local,12,5) AS end,
-       st.name AS stage, s.track, s.title
+       st.name AS stage, s.track, s.title,
+       CASE WHEN se.session_id IS NULL THEN 'official' ELSE 'side' END AS kind
 FROM session s LEFT JOIN stage st ON st.id = s.stage_id
+LEFT JOIN side_event se ON se.session_id = s.id
 ORDER BY s.starts_utc, st.name;
 
 -- Full detail with speakers and shortlist state.
@@ -107,8 +118,10 @@ SELECT s.id, s.day, substr(s.starts_local,12,5) AS start, substr(s.ends_local,12
                coalesce(p.company,'')) || ')', '; ')
         FROM (SELECT * FROM session_person WHERE session_id = s.id ORDER BY position) sp
         JOIN person p ON p.id = sp.person_id) AS speakers,
-       sl.status AS shortlist_status, sl.score, sl.note
+       sl.status AS shortlist_status, sl.score, sl.note,
+       CASE WHEN se.session_id IS NULL THEN 'official' ELSE 'side' END AS kind
 FROM session s LEFT JOIN stage st ON st.id = s.stage_id
+LEFT JOIN side_event se ON se.session_id = s.id
 LEFT JOIN v_shortlist sl ON sl.session_id = s.id;
 
 -- Conflicts between shortlisted sessions with status maybe/must.
@@ -131,6 +144,13 @@ JOIN (SELECT s.*, substr(s.starts_local,12,5) start_t, substr(s.ends_local,12,5)
         AND (SELECT CAST(value AS INTEGER) FROM setting WHERE key='conflict_buffer_min') > 0) )
 ORDER BY a.starts_utc, b.starts_utc;
 """
+
+
+def side_upgrade_sql():
+    """DDL that adds side_event support to a database built before schema_version 2."""
+    table = SCHEMA[SCHEMA.index("CREATE TABLE side_event"):SCHEMA.index("CREATE TABLE meta")]
+    views = SCHEMA[SCHEMA.index("CREATE VIEW v_titles"):SCHEMA.index("-- Conflicts between")]
+    return table + "DROP VIEW IF EXISTS v_titles;\nDROP VIEW IF EXISTS v_session_full;\n" + views
 
 
 def utc(iso):
@@ -168,6 +188,7 @@ def build(json_path, db_path):
 
     con.execute("INSERT INTO meta VALUES ('built_at', ?)", (datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),))
     con.execute("INSERT INTO meta VALUES ('source', ?)", (os.path.abspath(json_path),))
+    con.execute("INSERT INTO meta VALUES ('schema_version', '2')")
 
     # Carry over user data from the previous db.
     carried = 0
@@ -175,6 +196,11 @@ def build(json_path, db_path):
         con.execute("ATTACH ? AS old", (db_path,))
         con.execute("UPDATE setting SET value = (SELECT value FROM old.setting o WHERE o.key=setting.key) "
                     "WHERE key IN (SELECT key FROM old.setting)")
+        if con.execute("SELECT 1 FROM old.sqlite_master WHERE name='side_event'").fetchone():
+            con.execute("INSERT OR IGNORE INTO stage SELECT * FROM old.stage WHERE id LIKE 'side:%'")
+            con.execute("INSERT OR IGNORE INTO track SELECT * FROM old.track WHERE name='Side event'")
+            con.execute("INSERT OR IGNORE INTO session SELECT * FROM old.session WHERE id IN (SELECT session_id FROM old.side_event)")
+            con.execute("INSERT OR IGNORE INTO side_event SELECT * FROM old.side_event")
         # keep only versions whose session still exists
         con.execute("INSERT INTO shortlist_version(version,session_id,status,score,note,created_at,created_by) "
                     "SELECT version,session_id,status,score,note,created_at,created_by FROM old.shortlist_version "
@@ -198,6 +224,6 @@ if __name__ == "__main__":
     a = ap.parse_args()
     carried = build(a.json, a.db)
     con = sqlite3.connect(a.db)
-    for t in ("session", "stage", "track", "person", "session_person", "shortlist_version"):
+    for t in ("session", "stage", "track", "person", "session_person", "side_event", "shortlist_version"):
         print(f"{t:18}{con.execute(f'select count(*) from {t}').fetchone()[0]}")
     print(f"carried over shortlist versions: {carried}")
