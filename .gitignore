@@ -9,3 +9,6 @@ out/
 *.db-wal
 *.db-shm
 *.db.new
+dist/
+node_modules/
+.wrangler/

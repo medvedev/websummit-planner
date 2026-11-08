@@ -6,3 +6,5 @@ Complete the runtime check and installed-skill smoke test before reporting succe
 
 For repository maintenance, follow the user's task; installation is not a prerequisite.
 Run `python3 -m unittest discover -s tests -v` for code changes.
+
+In Codex cloud, run the skill in place from `skills/websummit-planner`; no install needed. Offer `export --out plan.json` at the end so the user can keep their shortlist.

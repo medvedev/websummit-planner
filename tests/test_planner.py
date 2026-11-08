@@ -55,6 +55,52 @@ class PlannerTest(unittest.TestCase):
         self.run_cli('buffer', '-1', ok=False)
         self.assertFalse(self.state.exists())
 
+    def test_export_import_round_trip(self):
+        ids = [r['id'] for r in self.run_cli('search', '--limit', '2')]
+        self.run_cli('mark', ids[0], 'must', '--score', '4', '--note', 'n1')
+        self.run_cli('mark', ids[1], 'maybe')
+        self.run_cli('mark', ids[1], 'removed')
+        self.run_cli('buffer', '15')
+        plan = Path(self.tmp.name) / 'plan.json'
+        self.run_cli('export', '--out', str(plan))
+        data = json.loads(plan.read_text(encoding='utf-8'))
+        self.assertEqual(len(data['history']), 3)
+        self.assertEqual(data['settings']['conflict_buffer_min'], 15)
+        self.state = Path(self.tmp.name) / 'fresh.db'
+        res = self.run_cli('import', str(plan))
+        self.assertEqual(res['imported'], 3)
+        sl = self.run_cli('shortlist')
+        self.assertEqual([(r['id'], r['shortlist_status'], r['score'], r['note']) for r in sl],
+                         [(ids[0], 'must', 4, 'n1')])
+        self.assertEqual(self.run_cli('info')['settings']['conflict_buffer_min'], '15')
+        self.assertEqual(len(self.run_cli('history', ids[1])), 2)
+
+    def test_export_empty_plan_and_stdout(self):
+        data = self.run_cli('export')
+        self.assertEqual(data['history'], [])
+        self.assertFalse(self.state.exists())
+        plan = Path(self.tmp.name) / 'empty.json'
+        plan.write_text(json.dumps(data), encoding='utf-8')
+        self.assertEqual(self.run_cli('import', str(plan))['imported'], 0)
+
+    def test_import_rejects_unknown_ids_and_bad_files(self):
+        plan = Path(self.tmp.name) / 'bad.json'
+        plan.write_text(json.dumps({'format': 'websummit-plan-v1', 'settings': {},
+                                    'history': [{'session_id': 'nope', 'status': 'must'}]}), encoding='utf-8')
+        self.assertIn('nope', self.run_cli('import', str(plan), ok=False))
+        self.assertFalse(self.state.exists())
+        plan.write_text('[1]', encoding='utf-8')
+        self.run_cli('import', str(plan), ok=False)
+        self.run_cli('import', str(Path(self.tmp.name) / 'missing.json'), ok=False)
+        self.assertFalse(self.state.exists())
+
+    def test_import_refuses_non_empty_state(self):
+        sid = self.run_cli('search', '--limit', '1')[0]['id']
+        self.run_cli('mark', sid, 'must')
+        plan = Path(self.tmp.name) / 'p.json'
+        self.run_cli('export', '--out', str(plan))
+        self.run_cli('import', str(plan), ok=False)
+
     def test_conflicts(self):
         seed = sqlite3.connect((SKILL / 'assets/websummit.db').as_uri() + '?mode=ro', uri=True)
         self.addCleanup(seed.close)

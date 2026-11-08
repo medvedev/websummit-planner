@@ -1,0 +1,39 @@
+name: Web distribution
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python -m pip install tzdata
+      - run: python -m unittest discover -s tests -v
+      - run: python tools/build_web.py --out dist
+        env:
+          WS_GPT_URL: ${{ vars.WS_GPT_URL }}
+          WS_GEM_URL: ${{ vars.WS_GEM_URL }}
+          WS_MCP_URL: ${{ vars.WS_MCP_URL }}
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - name: Release assets
+        if: github.ref == 'refs/heads/main'
+        run: gh release create web-2026-11-07 dist/websummit-planner.zip dist/schedule-*.md dist/schedule.json --title "Web distribution" --notes "Skill ZIP and text exports" || gh release upload web-2026-11-07 dist/websummit-planner.zip dist/schedule-*.md dist/schedule.json --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+    steps:
+      - uses: actions/deploy-pages@v4

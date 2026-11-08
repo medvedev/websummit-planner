@@ -18,6 +18,15 @@ python3 "<skill>/scripts/planner.py" details SESSION_ID
 
 `info` reports snapshot build time, available dates and state paths. State defaults to `~/.local/share/websummit-planner/2026.db`, respecting `XDG_DATA_HOME`; override with `WEBSUMMIT_DB` or `--db PATH` **before** the subcommand. Reads use the bundled snapshot until the first write initializes personal state. Installation does not require initialization. Use separate `--db` paths for separate people or plans.
 
+## Web / sandbox use
+
+In a web UI (Claude.ai skill, Codex cloud, a Custom GPT with code execution) the runtime is the host's own Python: skip [references/setup.md](references/setup.md) and uv, and run `scripts/planner.py` in place. Personal state lives in the sandbox and is lost when the chat ends. At the start, ask whether the user has a plan file to restore with `import PLAN.json`. After any `mark`, offer `export --out PLAN.json` so they can download it.
+
+```sh
+python3 "<skill>/scripts/planner.py" export --out plan.json   # omit --out to print JSON
+python3 "<skill>/scripts/planner.py" import plan.json         # fresh state only; unknown session IDs are rejected
+```
+
 ## Planning
 
 - Start with the user's interests and available days. If unknown, ask what they want to get out of the conference. Search compact titles first, then read details for candidates; recommendations should explain their relevance using actual session descriptions and speakers.

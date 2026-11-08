@@ -87,6 +87,43 @@ def refresh(path, json_path=None):
     return {'refreshed': True, 'database': str(path), 'sessions': len(items)}
 
 
+PLAN_FORMAT = 'websummit-plan-v1'
+
+
+def import_plan(path, plan_path):
+    """Replay an exported plan through the append-only path; validate everything first."""
+    try:
+        plan = json.loads(Path(plan_path).read_text(encoding='utf-8'))
+    except json.JSONDecodeError as error:
+        raise ValueError('Plan file is not valid JSON: ' + str(error))
+    if not isinstance(plan, dict) or plan.get('format') != PLAN_FORMAT or not isinstance(plan.get('history'), list):
+        raise ValueError('Not a ' + PLAN_FORMAT + ' plan file')
+    settings = plan.get('settings') or {}
+    buffer = settings.get('conflict_buffer_min', 0)
+    if not isinstance(buffer, int) or isinstance(buffer, bool) or buffer < 0:
+        raise ValueError('Plan has an invalid travel buffer')
+    source = path if path.exists() else SEED
+    with connect(source, True) as con:
+        if con.execute('SELECT 1 FROM shortlist_version LIMIT 1').fetchone():
+            raise ValueError('Personal state already has history; import into a fresh --db')
+        known = {r[0] for r in con.execute('SELECT id FROM session')}
+    entries = []
+    for e in plan['history']:
+        if not isinstance(e, dict) or e.get('status') not in ('maybe', 'must', 'skip', 'removed'):
+            raise ValueError('Plan has an invalid history entry: ' + json.dumps(e, ensure_ascii=False)[:200])
+        if e.get('session_id') not in known:
+            raise ValueError('Unknown session: ' + str(e.get('session_id')))
+        score = e.get('score')
+        if score is not None and (not isinstance(score, int) or isinstance(score, bool) or not 1 <= score <= 5):
+            raise ValueError('Plan has an invalid score for ' + e['session_id'])
+        entries.append((e['session_id'], e['status'], score, e.get('note') or '', e.get('created_by')))
+    initialize(path)
+    with connect(path) as con:
+        con.executemany('INSERT INTO shortlist_version(session_id,status,score,note,created_by) VALUES (?,?,?,?,?)', entries)
+        con.execute("UPDATE setting SET value=? WHERE key='conflict_buffer_min'", (str(buffer),))
+    return {'imported': len(entries), 'conflict_buffer_min': buffer}
+
+
 def parser():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--db', type=Path, default=default_db(), help='personal database (or WEBSUMMIT_DB)')
@@ -112,6 +149,10 @@ def parser():
     b = sub.add_parser('buffer')
     b.add_argument('minutes', type=int)
     sub.add_parser('conflicts')
+    x = sub.add_parser('export', help='write shortlist history and settings as portable JSON')
+    x.add_argument('--out', type=Path, help='write to this file instead of stdout')
+    i = sub.add_parser('import', help='replay an exported plan into empty personal state')
+    i.add_argument('plan', type=Path)
     r = sub.add_parser('refresh')
     r.add_argument('--json', type=Path, help='build from a local schedule JSON instead of downloading')
     return p
@@ -123,6 +164,8 @@ def run(a):
         raise ValueError('--db must point to personal state, not the bundled snapshot')
     if a.command == 'refresh':
         return refresh(path, a.json)
+    if a.command == 'import':
+        return import_plan(path, a.plan)
     source = path if path.exists() else SEED
     with connect(source, True) as con:
         if a.command in ('mark', 'details', 'history'):
@@ -161,6 +204,14 @@ def run(a):
             return rows(con, 'SELECT * FROM shortlist_version WHERE session_id=? ORDER BY version', (a.id,))
         if a.command == 'conflicts':
             return rows(con, 'SELECT * FROM v_conflicts')
+        if a.command == 'export':
+            plan = {'format': PLAN_FORMAT,
+                    'settings': {'conflict_buffer_min': int(dict(con.execute('SELECT * FROM setting'))['conflict_buffer_min'])},
+                    'history': rows(con, 'SELECT session_id,status,score,note,created_at,created_by FROM shortlist_version ORDER BY version')}
+            if a.out:
+                a.out.write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding='utf-8')
+                return {'exported': len(plan['history']), 'file': str(a.out)}
+            return plan
     initialize(path)
     with connect(path) as con:
         if a.command == 'mark':
