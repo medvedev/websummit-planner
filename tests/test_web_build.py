@@ -25,6 +25,13 @@ class WebBuildTest(unittest.TestCase):
             self.assertEqual(data['info']['sessions'], official)
             self.assertEqual(data['info']['side_events'], side)
             self.assertGreater(side, 0)
+            for row in data['sessions']:
+                if row['kind'] == 'official':
+                    self.assertEqual(row['url'], 'https://attend.websummit.com/lis26/events/' + row['id'])
+                    for person in row['people']:
+                        self.assertEqual(person['url'], 'https://attend.websummit.com/lis26/profiles/' + person['id'])
+                else:
+                    self.assertFalse(row['url'].startswith('https://attend.websummit.com/'))
             self.assertEqual(sum(1 for r in data['sessions'] if r['kind'] == 'side'), side)
             lines = (out / 'schedule-compact.md').read_text(encoding='utf-8').splitlines()
             self.assertEqual(sum(1 for l in lines if l.count(' | ') >= 6 and not l.startswith('Columns')), official)

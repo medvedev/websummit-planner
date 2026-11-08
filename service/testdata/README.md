@@ -7,3 +7,5 @@ The Go tests read these committed files and require no Node runtime. The TypeScr
 source and one-time generator are available in repository history/the migration work.
 For independent ongoing parity, tools/check_service.py compares HTTP results against
 the Python/SQLite implementation using the full generated snapshot.
+
+Official event URLs in search/details goldens were updated to the attend.websummit.com/lis26/events/{id} app-link format on 2026-11-08; all other captured fields retain the legacy baseline.

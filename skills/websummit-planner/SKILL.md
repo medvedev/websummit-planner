@@ -5,6 +5,8 @@ description: Search the Web Summit Lisbon 2026 schedule and community side event
 
 Use the bundled offline SQLite snapshot through `scripts/planner.py`. Requires a usable Python 3.9+ runtime with SQLite and Europe/Lisbon timezone data. The user does not need Python preinstalled: [references/setup.md](references/setup.md) covers a user-owned managed runtime. After setup, no server, API key, or network access is needed for planning.
 
+Use app-friendly Web Summit links: official events `https://attend.websummit.com/lis26/events/{event_id}`, people `https://attend.websummit.com/lis26/profiles/{attendance_id}`, and companies `https://attend.websummit.com/lis26/company/{company_id}` (singular company). Use IDs from source data; never guess a profile or company ID from a name. The current snapshot contains speaker attendance IDs but no company IDs, so only link companies when a verified ID is available. Keep community side-event registration links unchanged. These URLs are intended to open in the Web Summit mobile app.
+
 ## Start
 
 Resolve this SKILL.md's containing directory as the skill directory. Select an interpreter using [references/setup.md](references/setup.md): check the persistent planner runtime first, then existing Python. If none works, follow that guide to prepare one. Run `scripts/planner.py` by absolute path with the selected interpreter's absolute path; never assume the user's current directory is the installation directory. Examples below use `<skill>` for that absolute directory and `python3` as shorthand for the selected interpreter. In PowerShell use `& 'INTERPRETER_PATH' 'SCRIPT_PATH' ...` when invoking quoted paths.

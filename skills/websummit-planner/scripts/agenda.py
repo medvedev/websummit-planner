@@ -15,7 +15,8 @@ from xml.sax.saxutils import escape
 def resolve(rows, plan):
     if not isinstance(plan, list) or len(plan) > 200:
         raise ValueError("plan must be an array of at most 200 selections")
-    by_id = {s["id"]: s for s in rows}
+    by_id = {s["id"]: {**s, **({"url": "https://attend.websummit.com/lis26/events/" + s["id"]}
+                              if s.get("kind") == "official" else {})} for s in rows}
     latest = {}
     for p in plan:
         if not isinstance(p, dict) or p.get("status") not in {"must", "maybe", "skip", "removed"}:

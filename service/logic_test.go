@@ -335,3 +335,24 @@ func TestFetchShape(t *testing.T) {
 		t.Errorf("unknown fetch = %v", e)
 	}
 }
+
+func TestOfficialAppLinks(t *testing.T) {
+	d := fixture(t)
+	results := d.Search(SearchArgs{Limit: 1})
+	s := results[0]
+	want := "https://attend.websummit.com/lis26/events/" + s.ID
+	if s.URL != want || d.Fetch(s.ID)["url"] != want {
+		t.Fatal("search/fetch must use app links")
+	}
+	var detail map[string]any
+	if err := json.Unmarshal(d.Details([]string{s.ID})[0], &detail); err != nil {
+		t.Fatal(err)
+	}
+	if detail["url"] != want {
+		t.Fatal("details must use app links")
+	}
+	side := d.Search(SearchArgs{Kind: "side", Limit: 1})[0]
+	if strings.HasPrefix(side.URL, "https://attend.websummit.com/") {
+		t.Fatal("side event URL replaced")
+	}
+}

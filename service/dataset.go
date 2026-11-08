@@ -176,6 +176,12 @@ func parseSession(raw json.RawMessage) (*Session, error) {
 	if en.Before(st) {
 		return nil, fmt.Errorf("%q: ends before it starts", id)
 	}
+	if *p.Kind == "official" {
+		var fields map[string]json.RawMessage
+		_ = json.Unmarshal(raw, &fields)
+		fields["url"], _ = json.Marshal("https://attend.websummit.com/lis26/events/" + id)
+		raw, _ = json.Marshal(fields)
+	}
 	var compact bytes.Buffer
 	if err := json.Compact(&compact, raw); err != nil {
 		return nil, err
@@ -227,6 +233,9 @@ func (d *Dataset) datesNotice() string {
 }
 
 func (d *Dataset) urlFor(s *Session) string {
+	if s.Kind == "official" {
+		return "https://attend.websummit.com/lis26/events/" + s.ID
+	}
 	if s.URL != nil && *s.URL != "" {
 		return *s.URL
 	}

@@ -28,6 +28,14 @@ def load(db):
             's.starts_utc, s.ends_utc, se.url, se.organizer, se.address, se.ticket_url, se.price, se.currency, '
             'se.is_free, se.online, se.end_known FROM v_session_full v JOIN session s ON s.id=v.id '
             'LEFT JOIN side_event se ON se.session_id=s.id ORDER BY s.starts_utc, v.stage, v.id')]
+        for session in sessions:
+            if session['kind'] == 'official':
+                session['url'] = 'https://attend.websummit.com/lis26/events/' + session['id']
+                session['people'] = [dict(r) for r in con.execute(
+                    'SELECT p.* FROM session_person sp JOIN person p ON p.id=sp.person_id '
+                    'WHERE sp.session_id=? ORDER BY sp.position', (session['id'],))]
+                for person in session['people']:
+                    person['url'] = 'https://attend.websummit.com/lis26/profiles/' + person['id']
         meta = dict(con.execute('SELECT * FROM meta').fetchall())
     finally:
         con.close()
@@ -55,7 +63,7 @@ def export(out, db=SEED):
         for s in (x for x in official if x['day'] == day):
             parts.append(f"\n## {clean(s['title'])}\n- id: {s['id']}\n- time: {s['start']}–{s['end']} Lisbon\n"
                          f"- stage: {clean(s['stage'])}\n- track: {clean(s['track'])}\n"
-                         f"- speakers: {clean(s['speakers'])}\n- description: {clean(s['description'])}\n")
+                         f"- link: {s['url']}\n- speakers: {clean(s['speakers'])}\n- description: {clean(s['description'])}\n")
         (out / f'schedule-{day}.md').write_text(''.join(parts), encoding='utf-8')
     parts = [head + '# Community side events (not run by Web Summit; ids start with "side:")\n'
              'Dates 7-14 Nov. End time "?" means the source gave none.\n']

@@ -12,6 +12,13 @@ class AgendaTests(unittest.TestCase):
     def setUp(self):
         self.rows = [dict(id="a", title="Україна, AI; test\\x\nnext", day="2026-11-10", start="09:00", end="10:00", starts_utc="2026-11-10T09:00:00Z", ends_utc="2026-11-10T10:00:00Z", stage="Hall", description="<b>Data</b>", kind="official")]
 
+    def test_app_event_link(self):
+        rows = agenda.resolve(self.rows, [{"id": "a", "status": "must"}])
+        self.assertEqual(rows[0]["url"], "https://attend.websummit.com/lis26/events/a")
+        self.assertIn(rows[0]["url"], agenda.markdown(rows))
+        side = [{**self.rows[0], "kind": "side", "url": "https://example.org/register"}]
+        self.assertEqual(agenda.resolve(side, [{"id": "a", "status": "must"}])[0]["url"], side[0]["url"])
+
     def test_resolution(self):
         self.assertEqual(agenda.resolve(self.rows, [{"id":"a","status":"must"},{"id":"a","status":"skip"}]), [])
         with self.assertRaises(ValueError): agenda.resolve(self.rows, [{"id":"missing","status":"must"}])

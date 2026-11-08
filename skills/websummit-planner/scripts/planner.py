@@ -32,7 +32,11 @@ def connect(path, readonly=False):
 
 
 def rows(con, sql, params=()):
-    return [dict(r) for r in con.execute(sql, params)]
+    result = [dict(r) for r in con.execute(sql, params)]
+    for r in result:
+        if r.get('kind') == 'official':
+            r['url'] = 'https://attend.websummit.com/lis26/events/' + r['id']
+    return result
 
 
 def initialize(path):
@@ -228,6 +232,10 @@ def run(a):
         if a.command == 'details':
             found = rows(con, 'SELECT * FROM v_session_full WHERE id IN (' + ','.join('?' for _ in a.ids) + ') ORDER BY day,start,id', a.ids)
             for r in found:
+                if r['kind'] == 'official':
+                    r['people'] = rows(con, 'SELECT p.* FROM session_person sp JOIN person p ON p.id=sp.person_id WHERE sp.session_id=? ORDER BY sp.position', (r['id'],))
+                    for person in r['people']:
+                        person['url'] = 'https://attend.websummit.com/lis26/profiles/' + person['id']
                 if r['kind'] == 'side':
                     r['side_event'] = rows(con, 'SELECT * FROM side_event WHERE session_id=?', (r['id'],))[0]
             return found
