@@ -25,25 +25,27 @@ metadata and public data are returned; the service does not log request bodies o
 
 ## Initial project setup
 
-The owner is creating a dedicated project separately. Do not deploy to the unrelated
+The dedicated project is `websummit-mcp-unofficial`. Use `us-central1` (Iowa), a lowest-price-tier Cloud Run region; EU proximity is not required. Do not deploy to the unrelated
 project selected in the local gcloud configuration. Use an explicit project ID in every
 command. Billing must be enabled; free allowances do not guarantee a zero bill.
 
-    project=YOUR_PROJECT_ID
-    gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com --project "$project"
+    project=websummit-mcp-unofficial
+    gcloud services enable iam.googleapis.com run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com --project "$project"
     gcloud iam service-accounts create websummit-runtime --display-name="Web Summit read-only runtime" --project "$project"
+    gcloud iam service-accounts create websummit-build --display-name="Web Summit container builder" --project "$project"
+    gcloud projects add-iam-policy-binding "$project" --member="serviceAccount:websummit-build@${project}.iam.gserviceaccount.com" --role=roles/run.builder --condition=None
 
 The runtime identity needs no project IAM roles: it reads only the bundled snapshot.
 The deploying identity needs the Cloud Run source deployment permissions and permission
-to act as the runtime identity. The project's Cloud Build identity needs the documented
-Cloud Run Builder permissions. See the official source deployment guide for the exact
+to act as the runtime identity. The dedicated `websummit-build` identity receives only the documented
+Cloud Run Builder role; the deployment script explicitly selects it. See the official source deployment guide for the exact
 roles for your organization's build identity policy:
 https://cloud.google.com/run/docs/deploying-source-code
 Do not grant broad roles to the runtime identity to fix build permissions.
 
 ## Deploy
 
-    bash tools/deploy_gcp.sh YOUR_PROJECT_ID europe-west1
+    bash tools/deploy_gcp.sh websummit-mcp-unofficial us-central1
 
 This uses request-based CPU allocation, gen1 (required for the selected 128 MiB limit),
 1 CPU, concurrency 4, minimum 0 and maximum 2 instances, 30-second request timeout
@@ -77,3 +79,14 @@ the repository skill. Gemini uses uploaded files in a chat/Gem; remote MCP suppo
 not assumed. Shared GPT/Gem links are optional. Agent plans stay in context; agenda
 exports do not modify calendars or create Teams meetings. Host UI verification remains
 separate from service tests; do not claim a connector is added until checked in that UI.
+
+## Deployment preparation status (8 November 2026)
+
+Project `websummit-mcp-unofficial` exists. IAM and Cloud Billing management APIs are enabled.
+The `websummit-runtime` service account has no project roles; `websummit-build` has
+`roles/run.builder`. Deployment defaults to `us-central1` and explicitly selects both identities.
+Billing remains disabled at the last check, so no Cloud Run service, image repository,
+source build or public MCP endpoint has been deployed. Link an existing billing account,
+then enable the deployment APIs above and run the deployment command. Publish WS_MCP_URL
+only after verifying the actual live endpoint. Account discovery through gcloud hit a
+Cloud Billing API quota limit; the owner can enable project billing directly in the console.
