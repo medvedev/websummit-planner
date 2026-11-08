@@ -1,6 +1,6 @@
 # Installation instructions for agents
 
-Follow this guide when the user asks to install Web Summit Planner. It applies to Codex, Claude Code, and other local shell-capable agents. Do not run installation merely because you are reviewing or editing this repository.
+Follow this guide when the user asks to install Web Summit Planner. It applies to Codex, Claude Code, Gemini CLI, and other local shell-capable agents. Do not run installation merely because you are reviewing or editing this repository.
 
 ## 1. Obtain the files and choose the host
 
@@ -12,9 +12,10 @@ Install for the agent the user is currently using:
 | --- | --- | --- |
 | Codex | `--agent codex` | `~/.agents/skills/websummit-planner` |
 | Claude Code | `--agent claude` | `~/.claude/skills/websummit-planner` |
+| Gemini CLI | `--agent gemini` | `~/.gemini/skills/websummit-planner` |
 | Another compatible agent | `--dest ABSOLUTE_SKILL_FOLDER` | Use that host's documented skill folder |
 
-Do not infer the host from which configuration folders happen to exist. If host identity is unavailable, ask which agent should receive the skill. Install for both only when requested. Default to user scope; honor a request for project scope with `--scope project --project ABSOLUTE_PROJECT_PATH`.
+Do not infer the host from which configuration folders happen to exist. If host identity is unavailable, ask which agent should receive the skill. Gemini CLI also discovers `~/.agents/skills/`, so an existing Codex install is visible to it; use `--agent gemini` only when the user wants a separate copy. Install for several hosts only when requested. Default to user scope; honor a request for project scope with `--scope project --project ABSOLUTE_PROJECT_PATH`.
 
 ## 2. Find or prepare Python
 
@@ -28,7 +29,7 @@ POSIX shell example (substitute the selected paths):
 
 ```sh
 "<python>" "<repo>/install.py" --agent codex
-# In Claude Code, use --agent claude instead.
+# In Claude Code, use --agent claude; in Gemini CLI, --agent gemini.
 ```
 
 PowerShell example:
@@ -53,6 +54,6 @@ Read the installed `SKILL.md`. Use the selected absolute interpreter path to run
 
 Require successful JSON output with nonzero session count and a real session before declaring installation usable. These checks need no schedule refresh and do not create personal state. Do not save interests, create a shortlist, or refresh merely to test installation.
 
-Codex can invoke `$websummit-planner`; Claude Code can invoke `/websummit-planner`. If native discovery needs a new session, read and use the installed SKILL.md explicitly in the current session, then tell the user how to invoke it later. Ask about their interests and available days and begin planning.
+Codex can invoke `$websummit-planner`; Claude Code can invoke `/websummit-planner`; Gemini CLI activates it automatically from the request (run `/skills reload`, then `/skills list` to confirm it is discovered). If native discovery needs a new session, read and use the installed SKILL.md explicitly in the current session, then tell the user how to invoke it later. Ask about their interests and available days and begin planning.
 
 If network access is unavailable and there is no usable Python runtime, report that initial setup needs a runtime download. Once prepared, the offline planner does not require uv or network access to execute.

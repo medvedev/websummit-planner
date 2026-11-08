@@ -10,7 +10,7 @@ def main():
     sys.stdout.reconfigure(encoding='utf-8')
     p = argparse.ArgumentParser(description=__doc__)
     choice = p.add_mutually_exclusive_group(required=True)
-    choice.add_argument('--agent', choices=['codex', 'claude', 'both'])
+    choice.add_argument('--agent', choices=['codex', 'claude', 'gemini', 'both'])
     choice.add_argument('--dest', type=Path, help='exact destination skill folder for any compatible agent')
     p.add_argument('--scope', choices=['user', 'project'], default='user')
     p.add_argument('--project', type=Path, default=Path.cwd())
@@ -21,7 +21,8 @@ def main():
         destinations = [a.dest.expanduser().resolve()]
     else:
         agents = ['codex', 'claude'] if a.agent == 'both' else [a.agent]
-        destinations = [base / ('.agents' if agent == 'codex' else '.claude') / 'skills/websummit-planner' for agent in agents]
+        folders = {'codex': '.agents', 'claude': '.claude', 'gemini': '.gemini'}
+        destinations = [base / folders[agent] / 'skills/websummit-planner' for agent in agents]
     for dest in destinations:
         if dest.exists() or dest.is_symlink():
             p.exit(1, f'Refusing to overwrite {dest}. Move the old skill aside, then retry. Personal state is stored separately.\n')

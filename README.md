@@ -1,18 +1,18 @@
 # Web Summit Planner — portable agent skill
 
-Plan Web Summit Lisbon **9–12 November 2026** in Codex, Claude Code, or another shell-capable agent. Includes **1,122 sessions**, speaker details, an empty personal shortlist, append-only decisions, and overlap/travel-gap checks.
+Plan Web Summit Lisbon **9–12 November 2026** in Codex, Claude Code, Gemini CLI, or another shell-capable agent. Includes **1,122 sessions**, speaker details, an empty personal shortlist, append-only decisions, and overlap/travel-gap checks.
 
 **You do not need Python preinstalled.** Ask your agent to follow [INSTALL.md](INSTALL.md): it can prepare a user-owned Python runtime automatically with uv, without administrator access or system Python changes. First-time runtime setup needs internet access; planning works offline afterward. Existing Python 3.9+ with SQLite and Lisbon timezone data also works. No API keys, accounts, MCP server, or Node.js are required. Optional schedule refresh needs internet access.
 
 ## Easiest: ask your agent to install it
 
-Paste this prompt into Codex, Claude Code, or another local agent:
+Paste this prompt into Codex, Claude Code, Gemini CLI, or another local agent:
 
 > Install the websummit-planner skill from https://github.com/medvedev/websummit-planner for this agent. Follow INSTALL.md, including managed runtime setup if Python is missing, and verify the installed skill works. Then help me plan Web Summit Lisbon 2026. Ask about my interests and available days.
 
 For Codex's built-in skill installer, specify **`skills/websummit-planner`** as the path inside the GitHub repository. The complete skill, including its database and scripts, is contained there.
 
-For Codex, add “Install for Codex” to the prompt; for Claude Code, add “Install for Claude Code.” [AGENTS.md](AGENTS.md) and [CLAUDE.md](CLAUDE.md) route those hosts to the same setup procedure. Other agents can follow [INSTALL.md](INSTALL.md) and choose their own skill folder. No personal-state initialization command is needed.
+For Codex, add “Install for Codex” to the prompt; for Claude Code, add “Install for Claude Code”; for Gemini CLI, add “Install for Gemini CLI.” [AGENTS.md](AGENTS.md), [CLAUDE.md](CLAUDE.md) and [GEMINI.md](GEMINI.md) route those hosts to the same setup procedure. Other agents can follow [INSTALL.md](INSTALL.md) and choose their own skill folder. No personal-state initialization command is needed.
 
 ## Local installation
 
@@ -22,6 +22,8 @@ With a usable Python already installed, clone or download the repository, open a
 python3 install.py --agent codex
 # or
 python3 install.py --agent claude
+# or
+python3 install.py --agent gemini
 # or install for both
 python3 install.py --agent both
 ```
@@ -32,6 +34,7 @@ Without Python, give the agent the installation prompt above. For manual setup, 
 | --- | --- |
 | Codex | `~/.agents/skills/websummit-planner/` |
 | Claude Code | `~/.claude/skills/websummit-planner/` |
+| Gemini CLI | `~/.gemini/skills/websummit-planner/` (also reads `~/.agents/skills/`) |
 
 For project-only installation, add `--scope project --project /path/to/project`.
 For any other Agent Skills-compatible agent, use `--dest /path/to/skills/websummit-planner` (the exact skill folder). You can also copy the entire `skills/websummit-planner` folder yourself.

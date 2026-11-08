@@ -122,6 +122,13 @@ class PlannerTest(unittest.TestCase):
             self.assertEqual(self.run_cli('info', script=Path(self.tmp.name) / directory /
                                          'skills/websummit-planner/scripts/planner.py')['sessions'], 1122)
 
+    def test_gemini_project_install_location(self):
+        p = subprocess.run([sys.executable, str(ROOT / 'install.py'), '--agent', 'gemini',
+                            '--scope', 'project', '--project', self.tmp.name], capture_output=True, text=True)
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertEqual(self.run_cli('info', script=Path(self.tmp.name) / '.gemini' /
+                                     'skills/websummit-planner/scripts/planner.py')['sessions'], 1122)
+
     def test_snapshot_has_no_author_state(self):
         with closing(sqlite3.connect(SKILL / 'assets/websummit.db')) as c:
             self.assertEqual(c.execute('select count(*) from shortlist_version').fetchone()[0], 0)
