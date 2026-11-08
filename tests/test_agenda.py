@@ -1,3 +1,4 @@
+from contextlib import closing
 import importlib.util
 from pathlib import Path
 import unittest
@@ -36,7 +37,7 @@ class AgendaTests(unittest.TestCase):
         import tempfile
         seed = SCRIPT.parents[1] / "assets/websummit.db"
         before = hashlib.sha256(seed.read_bytes()).hexdigest()
-        with sqlite3.connect(seed.as_uri() + "?mode=ro", uri=True) as con:
+        with closing(sqlite3.connect(seed.as_uri() + "?mode=ro", uri=True)) as con:
             sid = con.execute("select id from session limit 1").fetchone()[0]
         with tempfile.TemporaryDirectory() as tmp:
             plan = Path(tmp) / "plan.json"
@@ -57,9 +58,10 @@ class AgendaTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             db, plan, out = [Path(tmp) / name for name in ("snapshot.db", "plan.json", "agenda.md")]
             shutil.copy(SCRIPT.parents[1] / "assets/websummit.db", db)
-            with sqlite3.connect(db) as con:
+            with closing(sqlite3.connect(db)) as con:
                 sid = con.execute("select id from session limit 1").fetchone()[0]
                 con.execute("update session set title=? where id=?", ("Refreshed title", sid))
+                con.commit()
             plan.write_text(json.dumps([{"id": sid, "status": "must"}]))
             subprocess.run([sys.executable, str(SCRIPT), str(plan), "--db", str(db), "--format", "markdown", "--out", str(out)], check=True, capture_output=True)
             self.assertIn("Refreshed title", out.read_text())
