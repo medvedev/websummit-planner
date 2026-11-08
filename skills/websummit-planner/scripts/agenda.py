@@ -9,13 +9,19 @@ from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
+from urllib.parse import quote
 from xml.sax.saxutils import escape
+
+
+def event_url(event_id):
+    """Universal link that opens an official event in the Web Summit mobile app."""
+    return 'https://link.websummit.com/?url=' + quote('https://attend.websummit.com/dl/lis26/event?id=' + event_id + '&mobile=true', safe='')
 
 
 def resolve(rows, plan):
     if not isinstance(plan, list) or len(plan) > 200:
         raise ValueError("plan must be an array of at most 200 selections")
-    by_id = {s["id"]: {**s, **({"url": "https://attend.websummit.com/lis26/events/" + s["id"]}
+    by_id = {s["id"]: {**s, **({"url": event_url(s["id"])}
                               if s.get("kind") == "official" else {})} for s in rows}
     latest = {}
     for p in plan:

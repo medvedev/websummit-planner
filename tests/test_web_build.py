@@ -7,6 +7,7 @@ import sys
 import tempfile
 import unittest
 import zipfile
+from urllib.parse import quote
 
 ROOT = Path(__file__).resolve().parents[1]
 SEED = ROOT / 'skills/websummit-planner/assets/websummit.db'
@@ -27,11 +28,11 @@ class WebBuildTest(unittest.TestCase):
             self.assertGreater(side, 0)
             for row in data['sessions']:
                 if row['kind'] == 'official':
-                    self.assertEqual(row['url'], 'https://attend.websummit.com/lis26/events/' + row['id'])
+                    self.assertEqual(row['url'], 'https://link.websummit.com/?url=' + quote('https://attend.websummit.com/dl/lis26/event?id=' + row['id'] + '&mobile=true', safe=''))
                     for person in row['people']:
                         self.assertEqual(person['url'], 'https://attend.websummit.com/lis26/profiles/' + person['id'])
                 else:
-                    self.assertFalse(row['url'].startswith('https://attend.websummit.com/'))
+                    self.assertFalse(row['url'].startswith('https://link.websummit.com/'))
             self.assertEqual(sum(1 for r in data['sessions'] if r['kind'] == 'side'), side)
             lines = (out / 'schedule-compact.md').read_text(encoding='utf-8').splitlines()
             self.assertEqual(sum(1 for l in lines if l.count(' | ') >= 6 and not l.startswith('Columns')), official)

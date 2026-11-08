@@ -5,7 +5,7 @@ description: Search the Web Summit Lisbon 2026 schedule and community side event
 
 Use the bundled offline SQLite snapshot through `scripts/planner.py`. Requires a usable Python 3.9+ runtime with SQLite and Europe/Lisbon timezone data. The user does not need Python preinstalled: [references/setup.md](references/setup.md) covers a user-owned managed runtime. After setup, no server, API key, or network access is needed for planning.
 
-Use app-friendly Web Summit links: official events `https://attend.websummit.com/lis26/events/{event_id}`, people `https://attend.websummit.com/lis26/profiles/{attendance_id}`, and companies `https://attend.websummit.com/lis26/company/{company_id}` (singular company). Use IDs from source data; never guess a profile or company ID from a name. The current snapshot contains speaker attendance IDs but no company IDs, so only link companies when a verified ID is available. Keep community side-event registration links unchanged. These URLs are intended to open in the Web Summit mobile app.
+Use app-friendly Web Summit links: official events: use the `url` field from the data as-is (a `link.websummit.com` universal link that opens the mobile app), people `https://attend.websummit.com/lis26/profiles/{attendance_id}`, and companies `https://attend.websummit.com/lis26/company/{company_id}` (singular company). Use IDs from source data; never guess a profile or company ID from a name. The current snapshot contains speaker attendance IDs but no company IDs, so only link companies when a verified ID is available. Keep community side-event registration links unchanged. These URLs are intended to open in the Web Summit mobile app.
 
 ## Start
 

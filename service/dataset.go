@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"regexp"
 	"slices"
@@ -179,7 +180,7 @@ func parseSession(raw json.RawMessage) (*Session, error) {
 	if *p.Kind == "official" {
 		var fields map[string]json.RawMessage
 		_ = json.Unmarshal(raw, &fields)
-		fields["url"], _ = json.Marshal("https://attend.websummit.com/lis26/events/" + id)
+		fields["url"], _ = json.Marshal(eventURL(id))
 		raw, _ = json.Marshal(fields)
 	}
 	var compact bytes.Buffer
@@ -234,7 +235,7 @@ func (d *Dataset) datesNotice() string {
 
 func (d *Dataset) urlFor(s *Session) string {
 	if s.Kind == "official" {
-		return "https://attend.websummit.com/lis26/events/" + s.ID
+		return eventURL(s.ID)
 	}
 	if s.URL != nil && *s.URL != "" {
 		return *s.URL
@@ -345,7 +346,7 @@ func (d *Dataset) Fetch(id string) map[string]any {
 	}
 }
 
-// PlanEntry is one client-held shortlist item.
+// PlanEntry is one client-held plan item.
 type PlanEntry struct {
 	ID     string `json:"id"`
 	Status string `json:"status"`
@@ -450,4 +451,10 @@ func cmpInt(a, b int64) int {
 		return 1
 	}
 	return 0
+}
+
+// eventURL returns the universal link that opens an official event in the Web
+// Summit mobile app (a plain attend.websummit.com URL opens a web viewer).
+func eventURL(id string) string {
+	return "https://link.websummit.com/?url=" + url.QueryEscape("https://attend.websummit.com/dl/lis26/event?id="+id+"&mobile=true")
 }

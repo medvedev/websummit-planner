@@ -17,7 +17,8 @@ memory limit. A deliberately heavy 200-selection plan with a 120-minute travel b
 returned a 7,257,796-byte JSON response. Sixteen requests at concurrency four all passed;
 maximum observed request time was 1.704 seconds, and memory after the run was 61.23 MiB.
 The earlier concurrency-20 test closed connections and the ephemeral container exited;
-it is not a supported setting at this memory limit. Deployment concurrency is four.
+it is not a supported setting at this memory limit. Deployment concurrency was raised
+to 32 at the user's request; 32 concurrent heavy requests have not been tested.
 
 The current deployment uses gen1 for its supported 128 MiB minimum, scale-to-zero,
 maximum two instances and startup CPU boost. Recheck production latency and peak memory

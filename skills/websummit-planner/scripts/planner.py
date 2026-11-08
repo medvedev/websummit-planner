@@ -7,9 +7,15 @@ from pathlib import Path
 import sqlite3
 import sys
 import tempfile
+from urllib.parse import quote
 from contextlib import contextmanager
 
 SEED = Path(__file__).resolve().parents[1] / 'assets' / 'websummit.db'
+
+
+def event_url(event_id):
+    """Universal link that opens an official event in the Web Summit mobile app."""
+    return 'https://link.websummit.com/?url=' + quote('https://attend.websummit.com/dl/lis26/event?id=' + event_id + '&mobile=true', safe='')
 
 
 def default_db():
@@ -35,7 +41,7 @@ def rows(con, sql, params=()):
     result = [dict(r) for r in con.execute(sql, params)]
     for r in result:
         if r.get('kind') == 'official':
-            r['url'] = 'https://attend.websummit.com/lis26/events/' + r['id']
+            r['url'] = event_url(r['id'])
     return result
 
 

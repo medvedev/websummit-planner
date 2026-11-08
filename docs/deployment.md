@@ -43,8 +43,8 @@ deployer needs Cloud Run deployment/IAM permissions on this service, permission 
 as the runtime identity, and Artifact Registry write access to websummit-images. It needs
 no build service account, source-bucket access or Cloud Build permissions.
 
-The deploy script uses request-based CPU allocation, gen1, 128 MiB, 1 CPU, concurrency 4,
-minimum 0 and maximum 2 instances at both service/revision levels, a 30-second timeout
+The deploy script uses request-based CPU allocation, gen1, 128 MiB, 1 CPU, concurrency 32,
+minimum 0 and maximum 2 instances at both service/revision levels, a 15-second timeout
 and startup CPU boost. GOMEMLIMIT=64MiB is a Go soft target. Measure production memory
 and latency before changing limits. Local measurements are in service-performance.md.
 

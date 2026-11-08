@@ -46,13 +46,13 @@ Rules for the assistant:
 - Never invent sessions, venues, speakers or URLs. Say when something is not in the data.
 - Ask the user's interests and days first. Scan schedule-compact.md (one line per session:
   id | day | start-end | stage | track | title | speakers), then open the per-day file for descriptions.
-- The source is read-only. Keep shortlist, notes and preferences in agent context.
+- The source is read-only. Keep selected sessions, notes and preferences in agent context.
 - Offer Markdown, PDF and .ics agenda downloads using host file creation; use agenda.py with
   context-held IDs and schedule.json when Python is available. PDF needs reportlab and a Unicode font.
   Never invent end times. ICS uses UTC and stable IDs, for manual Google/Apple/Outlook imports.
   No calendar import or Teams meeting creation is implied. If file generation is absent, provide
   Markdown/ICS text and explain the PDF limitation.
-- Keep the shortlist in the chat. To check conflicts, show a table of start/end times and flag
+- Keep the selected sessions in the chat. To check conflicts, show a table of start/end times and flag
   overlaps (and tight gaps between different stages).
 
 Files:
@@ -76,20 +76,20 @@ def card(title, body, steps, link=None, label='Open', note=''):
 def build_index(links):
     gpt, gem, mcp = (os.environ.get(k, '') for k in ('WS_GPT_URL', 'WS_GEM_URL', 'WS_MCP_URL'))
     cards = [
-        card('Claude.ai (skill)', 'Read-only snapshot; shortlist stays in your chat.',
+        card('Claude.ai (skill)', 'Read-only snapshot; your selection stays in your chat.',
              ['Settings → Capabilities: enable “Create and edit files”.',
               'Settings → Capabilities → Skills → Upload the ZIP.',
               'Ask: “Plan my Web Summit and export my agenda as Markdown, PDF and ICS.”'],
              'websummit-planner.zip', 'Download skill ZIP',
-             'Shortlist lives in the conversation; export a plan file to keep it. Not synced across hosts.'),
+             'Your selection lives in the conversation; export a plan file to keep it. Not synced across hosts.'),
         card('ChatGPT', 'Use the shared GPT, or upload the data in your own chat.', ['Download schedule.json and web-instructions.md below; attach both in ChatGPT.', 'Ask for your agenda in Markdown, PDF or ICS.'],
-             gpt or 'web-instructions.md', 'Open the GPT' if gpt else 'Download instructions', 'Shortlist lives in the chat. If code execution is unavailable it answers from the schedule text.'),
+             gpt or 'web-instructions.md', 'Open the GPT' if gpt else 'Download instructions', 'Your selection lives in the chat. If code execution is unavailable it answers from the schedule text.'),
         card('Gemini', 'Use file uploads in a chat or your own Gem.', ['Download schedule.json and web-instructions.md below.', 'Attach them in Gemini; if limits apply, use the per-day Markdown files.'],
-             gem or 'web-instructions.md', 'Open the Gem' if gem else 'Download instructions', 'Weaker conflict checking (reasoned, not computed). Shortlist lives in the chat.'),
-        card('Codex web', 'Run the planner in the repository sandbox.', ['Select medvedev/websummit-planner as the repository.', 'Read skills/websummit-planner/SKILL.md and keep your shortlist in task context.', 'Ask for agenda.md, agenda.pdf or agenda.ics.'], 'https://github.com/medvedev/websummit-planner', 'Open repository', 'PDF needs ReportLab and a Unicode font in the sandbox.'),
+             gem or 'web-instructions.md', 'Open the Gem' if gem else 'Download instructions', 'Weaker conflict checking (reasoned, not computed). Your selection lives in the chat.'),
+        card('Codex web', 'Run the planner in the repository sandbox.', ['Select medvedev/websummit-planner as the repository.', 'Read skills/websummit-planner/SKILL.md and keep your selection in task context.', 'Ask for agenda.md, agenda.pdf or agenda.ics.'], 'https://github.com/medvedev/websummit-planner', 'Open repository', 'PDF needs ReportLab and a Unicode font in the sandbox.'),
         card('Any chat that can fetch URLs', 'Paste this prompt:',
              ['<code>Read ' + html.escape(links['llms']) + ' and help me plan Web Summit 2026.</code>'],
-             links['llms'], 'Open instructions', 'Shortlist lives in the chat. Download schedule.json and web-instructions.md if URL fetching is unavailable.'),
+             links['llms'], 'Open instructions', 'Your selection lives in the chat. Download schedule.json and web-instructions.md if URL fetching is unavailable.'),
         card('MCP connector (Claude, ChatGPT)', 'Read-only remote server; paste its URL as a custom connector.',
              ['Settings → Connectors → Add custom connector.', 'Paste the URL: <code>' + html.escape(mcp or '(not yet published)') + '</code>'],
              mcp or None, 'Open', 'Availability depends on plan; Gemini web support unverified.'),

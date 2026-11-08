@@ -14,7 +14,7 @@ class AgendaTests(unittest.TestCase):
 
     def test_app_event_link(self):
         rows = agenda.resolve(self.rows, [{"id": "a", "status": "must"}])
-        self.assertEqual(rows[0]["url"], "https://attend.websummit.com/lis26/events/a")
+        self.assertEqual(rows[0]["url"], "https://link.websummit.com/?url=https%3A%2F%2Fattend.websummit.com%2Fdl%2Flis26%2Fevent%3Fid%3Da%26mobile%3Dtrue")
         self.assertIn(rows[0]["url"], agenda.markdown(rows))
         side = [{**self.rows[0], "kind": "side", "url": "https://example.org/register"}]
         self.assertEqual(agenda.resolve(side, [{"id": "a", "status": "must"}])[0]["url"], side[0]["url"])

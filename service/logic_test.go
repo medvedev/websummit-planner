@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"net/url"
 	"os"
 	"reflect"
 	"strings"
@@ -340,7 +341,7 @@ func TestOfficialAppLinks(t *testing.T) {
 	d := fixture(t)
 	results := d.Search(SearchArgs{Limit: 1})
 	s := results[0]
-	want := "https://attend.websummit.com/lis26/events/" + s.ID
+	want := "https://link.websummit.com/?url=" + url.QueryEscape("https://attend.websummit.com/dl/lis26/event?id="+s.ID+"&mobile=true")
 	if s.URL != want || d.Fetch(s.ID)["url"] != want {
 		t.Fatal("search/fetch must use app links")
 	}
@@ -352,7 +353,7 @@ func TestOfficialAppLinks(t *testing.T) {
 		t.Fatal("details must use app links")
 	}
 	side := d.Search(SearchArgs{Kind: "side", Limit: 1})[0]
-	if strings.HasPrefix(side.URL, "https://attend.websummit.com/") {
+	if strings.HasPrefix(side.URL, "https://link.websummit.com/") {
 		t.Fatal("side event URL replaced")
 	}
 }
