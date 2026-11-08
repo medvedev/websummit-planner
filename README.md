@@ -93,3 +93,17 @@ Tests use temporary personal databases and install destinations. GitHub Actions 
 When sharing or forking, keep `skills/websummit-planner` intact and do not add your personal database. Code and instructions are MIT licensed; event content is attributed separately in [DATA_NOTICE.md](DATA_NOTICE.md). This is an unofficial independent tool.
 
 Skill format and installation references: [OpenAI skills](https://developers.openai.com/plugins/build/skills), [OpenAI agent installation paths](https://developers.openai.com/api/reference/cli), [Claude Code skills](https://code.claude.com/docs/en/skills).
+
+## Web assistants and agenda downloads
+
+The public source is read-only. Keep your shortlist and notes in your assistant's context.
+See [web instructions](docs/web-instructions.md) for Claude, ChatGPT, Codex web and Gemini.
+The distribution includes a skill ZIP, schedule JSON, per-day text and an agenda exporter.
+No Gemini subscription or model API key is required for the file-upload route.
+
+Ask your agent: “Use the Web Summit snapshot, help me choose sessions, then create my
+agenda as Markdown, PDF and an ICS calendar.” The helper `scripts/agenda.py` takes a
+context-held selection array and reads the snapshot without creating personal state.
+Markdown and ICS require only Python; PDF requires ReportLab and a Unicode font.
+ICS files are for manual Google/Apple/Outlook imports; they do not create Teams meetings.
+Host-generated PDF/download support varies. No server stores your personal plan.

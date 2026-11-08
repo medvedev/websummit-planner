@@ -46,10 +46,18 @@ Rules for the assistant:
 - Never invent sessions, venues, speakers or URLs. Say when something is not in the data.
 - Ask the user's interests and days first. Scan schedule-compact.md (one line per session:
   id | day | start-end | stage | track | title | speakers), then open the per-day file for descriptions.
+- The source is read-only. Keep shortlist, notes and preferences in agent context.
+- Offer Markdown, PDF and .ics agenda downloads using host file creation; use agenda.py with
+  context-held IDs and schedule.json when Python is available. PDF needs reportlab and a Unicode font.
+  Never invent end times. ICS uses UTC and stable IDs, for manual Google/Apple/Outlook imports.
+  No calendar import or Teams meeting creation is implied. If file generation is absent, provide
+  Markdown/ICS text and explain the PDF limitation.
 - Keep the shortlist in the chat. To check conflicts, show a table of start/end times and flag
   overlaps (and tight gaps between different stages).
 
 Files:
+- [web-instructions.md]({base}web-instructions.md): instructions for any web assistant
+- [agenda.py]({base}agenda.py): local Markdown/PDF/ICS renderer (use --schedule schedule.json)
 - [schedule-compact.md]({base}schedule-compact.md): one line per session
 {day_links}
 - [side-events.md]({base}side-events.md): community side events (7-14 Nov, ids start with `side:`), with venue, price and link
@@ -68,19 +76,20 @@ def card(title, body, steps, link=None, label='Open', note=''):
 def build_index(links):
     gpt, gem, mcp = (os.environ.get(k, '') for k in ('WS_GPT_URL', 'WS_GEM_URL', 'WS_MCP_URL'))
     cards = [
-        card('Claude.ai (skill)', 'Full planner with local conflict checks.',
+        card('Claude.ai (skill)', 'Read-only snapshot; shortlist stays in your chat.',
              ['Settings → Capabilities: enable “Create and edit files”.',
               'Settings → Capabilities → Skills → Upload the ZIP.',
-              'Ask: “Plan my Web Summit.” Say “export” to save your plan file; “import” it in a new chat.'],
+              'Ask: “Plan my Web Summit and export my agenda as Markdown, PDF and ICS.”'],
              'websummit-planner.zip', 'Download skill ZIP',
              'Shortlist lives in the conversation; export a plan file to keep it. Not synced across hosts.'),
-        card('ChatGPT (Custom GPT)', 'Open the shared GPT; no setup.', ['Open the link and chat.'],
-             gpt, 'Open the GPT', 'Shortlist lives in the chat. If code execution is unavailable it answers from the schedule text.'),
-        card('Gemini (Gem)', 'Open the shared Gem; no setup.', ['Open the link and chat.'],
-             gem, 'Open the Gem', 'Weaker conflict checking (reasoned, not computed). Shortlist lives in the chat.'),
+        card('ChatGPT', 'Use the shared GPT, or upload the data in your own chat.', ['Download schedule.json and web-instructions.md below; attach both in ChatGPT.', 'Ask for your agenda in Markdown, PDF or ICS.'],
+             gpt or 'web-instructions.md', 'Open the GPT' if gpt else 'Download instructions', 'Shortlist lives in the chat. If code execution is unavailable it answers from the schedule text.'),
+        card('Gemini', 'Use file uploads in a chat or your own Gem.', ['Download schedule.json and web-instructions.md below.', 'Attach them in Gemini; if limits apply, use the per-day Markdown files.'],
+             gem or 'web-instructions.md', 'Open the Gem' if gem else 'Download instructions', 'Weaker conflict checking (reasoned, not computed). Shortlist lives in the chat.'),
+        card('Codex web', 'Run the planner in the repository sandbox.', ['Select medvedev/websummit-planner as the repository.', 'Read skills/websummit-planner/SKILL.md and keep your shortlist in task context.', 'Ask for agenda.md, agenda.pdf or agenda.ics.'], 'https://github.com/medvedev/websummit-planner', 'Open repository', 'PDF needs ReportLab and a Unicode font in the sandbox.'),
         card('Any chat that can fetch URLs', 'Paste this prompt:',
              ['<code>Read ' + html.escape(links['llms']) + ' and help me plan Web Summit 2026.</code>'],
-             None, '', 'Data only; shortlist lives in the chat.'),
+             links['llms'], 'Open instructions', 'Shortlist lives in the chat. Download schedule.json and web-instructions.md if URL fetching is unavailable.'),
         card('MCP connector (Claude, ChatGPT)', 'Read-only remote server; paste its URL as a custom connector.',
              ['Settings → Connectors → Add custom connector.', 'Paste the URL: <code>' + html.escape(mcp or '(not yet published)') + '</code>'],
              mcp or None, 'Open', 'Availability depends on plan; Gemini web support unverified.'),
@@ -93,7 +102,7 @@ def build_index(links):
 <h1>Web Summit Lisbon 2026 Planner</h1>
 <p>Search the 9–12 Nov schedule (plus community side events, 7–14 Nov) and plan your days from the AI assistant you already use. Unofficial.</p>
 {''.join(cards)}
-<footer><p>Unofficial project, not affiliated with or endorsed by Web Summit. Schedule data from websummit.com
+<p>For any host: download <a href="web-instructions.md">assistant instructions</a>, <a href="schedule.json">schedule JSON</a> and <a href="agenda.py">agenda exporter</a>. Ask for Markdown, PDF or ICS files. File creation depends on the host; no calendar is modified automatically.</p><footer><p>Unofficial project, not affiliated with or endorsed by Web Summit. Schedule data from websummit.com
 (snapshot, may change); see <a href="DATA_NOTICE.md">data notice</a>. Takedown requests: open an issue on the repository
 and the data will be removed.</p></footer></body></html>"""
 
@@ -115,6 +124,8 @@ def main():
     info = export(out)
     build_zip(out / 'websummit-planner.zip')
     shutil.copy(ROOT / 'DATA_NOTICE.md', out / 'DATA_NOTICE.md')
+    shutil.copy(SKILL / 'scripts' / 'agenda.py', out / 'agenda.py')
+    shutil.copy(ROOT / 'docs' / 'web-instructions.md', out / 'web-instructions.md')
     base = a.base_url.rstrip('/') + '/'
     day_links = '\n'.join(f'- [schedule-{d}.md]({base}schedule-{d}.md): full descriptions for {d}' for d in info['days'])
     (out / 'llms.txt').write_text(LLMS.format(day_links=day_links, base=base), encoding='utf-8')

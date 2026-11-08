@@ -38,6 +38,14 @@ class WebBuildTest(unittest.TestCase):
             self.assertEqual([n for n in names if n.endswith('.db')], ['websummit-planner/assets/websummit.db'])
             self.assertFalse([n for n in names if 'tests' in n or '__pycache__' in n])
             self.assertIn('llms.txt', [p.name for p in out.iterdir()])
+            self.assertTrue((out / 'agenda.py').is_file())
+            self.assertIn('read-only', (out / 'web-instructions.md').read_text())
+            plan = Path(tmp) / 'plan.json'
+            plan.write_text(json.dumps([{'id': data['sessions'][0]['id'], 'status': 'must'}]))
+            subprocess.run([sys.executable, str(out / 'agenda.py'), str(plan), '--schedule', str(out / 'schedule.json'),
+                            '--format', 'ics', '--out', str(Path(tmp) / 'agenda.ics')], check=True, capture_output=True)
+            self.assertIn('BEGIN:VEVENT', (Path(tmp) / 'agenda.ics').read_text())
+            self.assertIn('websummit-planner/scripts/agenda.py', names)
             self.assertIn('unofficial', (out / 'index.html').read_text(encoding='utf-8').lower())
 
     def test_build_refuses_to_wipe_unrelated_directory(self):

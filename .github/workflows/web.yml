@@ -31,6 +31,8 @@ jobs:
             dist/schedule-*.md
             dist/side-events.md
             dist/schedule.json
+            dist/agenda.py
+            dist/web-instructions.md
   release:
     needs: build
     runs-on: ubuntu-latest
