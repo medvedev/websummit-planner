@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	ServerVersion = "2.0.0"
+	ServerVersion = "2.0.1"
 	// MaxBodyBytes fits the largest valid request (200 plan entries with
 	// 128-char IDs, or a MaxCodeLen plan code) with headroom. The legacy 16 KiB
 	// limit rejected some schema-valid requests.
@@ -184,7 +184,7 @@ func NewMCPServer(d *Dataset) *mcp.Server {
 	return s
 }
 
-// NewHandler serves /, /healthz and the stateless MCP endpoint at /mcp.
+// NewHandler serves /, /health and the stateless MCP endpoint at /mcp.
 func NewHandler(d *Dataset) http.Handler {
 	srv := NewMCPServer(d)
 	mcpHandler := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return srv }, &mcp.StreamableHTTPOptions{
@@ -205,7 +205,7 @@ func NewHandler(d *Dataset) http.Handler {
 		switch r.URL.Path {
 		case "/":
 			text(w, http.StatusOK, banner)
-		case "/healthz":
+		case "/health":
 			text(w, http.StatusOK, "ok\n")
 		case "/mcp":
 			if r.Method != http.MethodPost {

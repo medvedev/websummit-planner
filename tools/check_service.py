@@ -30,7 +30,7 @@ def main():
             deadline = time.monotonic() + 10
             while True:
                 try:
-                    urllib.request.urlopen(base + "/healthz", timeout=1).close()
+                    urllib.request.urlopen(base + "/health", timeout=1).close()
                     break
                 except (OSError, urllib.error.URLError):
                     if process.poll() is not None or time.monotonic() >= deadline:

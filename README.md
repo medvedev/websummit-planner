@@ -114,5 +114,9 @@ The service in `service/` uses Go and the official MCP SDK, loading one immutabl
 snapshot into memory with reusable indexes. No database server or personal storage
 is required. A multi-stage build produces a static binary in a non-root scratch image.
 See [deployment instructions](docs/deployment.md) for local tests, the Cloud Run
-configuration and deployment to a dedicated project. Public deployment is pending
-that project's creation; the static downloads remain available meanwhile.
+configuration and deployment to a dedicated project. Deployment builds Docker locally and pushes the image to Artifact Registry; Cloud Build is not used.
+
+
+Live connector: **https://websummit-planner-380110762187.us-central1.run.app/mcp**.
+Use `/health` for the public health endpoint. Hosting uses Iowa, scale-to-zero and
+128 MiB memory; images are built locally and Cloud Build is disabled.

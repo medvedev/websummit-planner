@@ -248,8 +248,8 @@ func TestHTTPRoutesAndLimits(t *testing.T) {
 	if r, b := get("/"); r.StatusCode != 200 || !strings.Contains(b, "Unofficial") || !strings.Contains(b, "/mcp") {
 		t.Errorf("/ = %d %s", r.StatusCode, b)
 	}
-	if r, b := get("/healthz"); r.StatusCode != 200 || !strings.Contains(b, "ok") {
-		t.Errorf("/healthz = %d %s", r.StatusCode, b)
+	if r, b := get("/health"); r.StatusCode != 200 || !strings.Contains(b, "ok") {
+		t.Errorf("/health = %d %s", r.StatusCode, b)
 	}
 	if r, _ := get("/nope"); r.StatusCode != 404 {
 		t.Errorf("/nope = %d", r.StatusCode)
