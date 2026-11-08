@@ -107,3 +107,12 @@ context-held selection array and reads the snapshot without creating personal st
 Markdown and ICS require only Python; PDF requires ReportLab and a Unicode font.
 ICS files are for manual Google/Apple/Outlook imports; they do not create Teams meetings.
 Host-generated PDF/download support varies. No server stores your personal plan.
+
+## Read-only MCP on GCP
+
+The service in `service/` uses Go and the official MCP SDK, loading one immutable
+snapshot into memory with reusable indexes. No database server or personal storage
+is required. A multi-stage build produces a static binary in a non-root scratch image.
+See [deployment instructions](docs/deployment.md) for local tests, the Cloud Run
+configuration and deployment to a dedicated project. Public deployment is pending
+that project's creation; the static downloads remain available meanwhile.

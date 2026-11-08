@@ -12,3 +12,8 @@ out/
 dist/
 node_modules/
 .wrangler/
+/service/data/
+/service/server
+
+# Retain obsolete local build caches outside the replacement source tree.
+/mcp-worker/

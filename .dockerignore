@@ -1,0 +1,12 @@
+**
+!Dockerfile
+!service/
+!service/**
+service/data/
+service/server
+!skills/
+!skills/websummit-planner/
+!skills/websummit-planner/assets/
+!skills/websummit-planner/assets/websummit.db
+!skills/websummit-planner/scripts/
+!skills/websummit-planner/scripts/export_text.py
