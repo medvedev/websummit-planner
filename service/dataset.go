@@ -50,6 +50,7 @@ type Dataset struct {
 	sha       string
 	firstDay  map[string]string
 	lastDay   map[string]string
+	companies *Companies // nil when no company data is loaded
 }
 
 type snapshotSession struct {
@@ -457,4 +458,10 @@ func cmpInt(a, b int64) int {
 // Summit mobile app (a plain attend.websummit.com URL opens a web viewer).
 func eventURL(id string) string {
 	return "https://link.websummit.com/?url=" + url.QueryEscape("https://attend.websummit.com/dl/lis26/event?id="+id+"&mobile=true")
+}
+
+// WithCompanies attaches the company catalog (before the dataset is shared).
+func (d *Dataset) WithCompanies(c *Companies) *Dataset {
+	d.companies = c
+	return d
 }
