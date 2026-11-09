@@ -1,0 +1,4 @@
+# Seed database: opaque binary. Kept in plain git (git zlib-packs it to ~2.5 MB) rather than Git LFS,
+# because installs download the GitHub ZIP, which does not contain LFS objects.
+*.db binary
+*.db -diff -merge

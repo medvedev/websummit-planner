@@ -17,3 +17,4 @@ node_modules/
 
 # Retain obsolete local build caches outside the replacement source tree.
 /mcp-worker/
+service/service
