@@ -9,6 +9,8 @@ Session titles, descriptions, speaker names, affiliations, and event branding or
 
 Community side events (7–14 November 2026) were collected from https://side-events-guide.com/ (schema.org event markup). Titles, descriptions, organizer names, prices and links belong to the event organizers and that site; the same terms apply as for the Web Summit data above. Side events are not run or endorsed by Web Summit, and entries may be incomplete or out of date.
 
+Company data (2,872 companies) was collected on 8 November 2026 from the Web Summit attendee portal. It contains each company's name, tier, industry, country, location, description, tags, self-reported facts (funding stage, revenue, markets, founder demographics), website and social links, hosted events and speakers, and endorsements. The following are excluded: pitch-deck links, personal LinkedIn profile links (company pages are kept), and e-mail addresses (replaced by "[email removed]" in descriptions). People appear only as Web Summit profile UUIDs with role, tier, industry and country; names appear only where the person is a public schedule speaker. Company and profile links open only for users logged in to the Web Summit app or portal. Facts are self-reported by the companies and unverified. The same third-party terms as for the schedule data above apply.
+
 The snapshot excludes the original author's personal shortlist, notes, history, custom settings, and filesystem paths. Local use may create a separate personal database that is not part of the shared skill.
 
 This project is unofficial and is not affiliated with or endorsed by Web Summit. Schedules can change; the bundled snapshot is not a live availability or access guarantee.

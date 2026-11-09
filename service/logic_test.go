@@ -357,3 +357,59 @@ func TestOfficialAppLinks(t *testing.T) {
 		t.Fatal("side event URL replaced")
 	}
 }
+
+func TestCheckPlanCompaniesUntimed(t *testing.T) {
+	d := fixture(t).WithCompanies(companyFixture(t))
+	// two overlapping official sessions from the fixture
+	var a, b *Session
+	for _, s := range d.sessions {
+		for _, u := range d.sessions {
+			if s.ID < u.ID && s.Kind == "official" && u.Kind == "official" && s.startMs < u.endMs && u.startMs < s.endMs {
+				a, b = s, u
+			}
+		}
+		if a != nil {
+			break
+		}
+	}
+	if a == nil {
+		t.Fatal("no overlapping pair in fixture")
+	}
+	plan := []PlanEntry{{a.ID, "must"}, {b.ID, "maybe"}, {"company:62217", "maybe"}, {"company:62217", "must"},
+		{"3", "maybe"}, {"company:5", "skip"}, {"company:999", "must"}}
+	res := d.CheckPlan(plan, 0)
+	if len(res.Conflicts) != 1 {
+		t.Fatalf("conflicts = %d", len(res.Conflicts))
+	}
+	if len(res.Companies) != 2 || res.Companies[0].ID != "company:62217" || res.Companies[0].Status != "must" ||
+		res.Companies[1].ID != "company:3" || res.Companies[1].URL != "https://attend.websummit.com/lis26/company/3" {
+		t.Fatalf("companies = %+v", res.Companies)
+	}
+	if !reflect.DeepEqual(res.Unknown, []string{"company:999"}) || len(res.Plan) != 2 {
+		t.Fatalf("unknown = %v plan = %d", res.Unknown, len(res.Plan))
+	}
+	// without any company entry the field is omitted (goldens unchanged)
+	raw, _ := marshalJSON(d.CheckPlan([]PlanEntry{{a.ID, "must"}}, 0))
+	if strings.Contains(string(raw), `"companies"`) {
+		t.Errorf("companies not omitted: %s", raw)
+	}
+	// without a catalog, company IDs are unknown
+	if r := fixture(t).CheckPlan([]PlanEntry{{"company:3", "must"}}, 0); len(r.Companies) != 0 || len(r.Unknown) != 1 {
+		t.Errorf("no catalog: %+v", r)
+	}
+}
+
+func TestEncodePlanCompanyIDsRoundTrip(t *testing.T) {
+	in := []PlanEntry{{"company:62217", "must"}, {"abc", "maybe"}, {"company:3", "removed"}}
+	code, err := EncodePlan(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, err := DecodePlan(code)
+	if err != nil || !reflect.DeepEqual(in, out) {
+		t.Fatalf("round trip: %v %v", out, err)
+	}
+	if b, _ := base64.RawURLEncoding.DecodeString(code); string(b) != `[["company:62217","u"],["abc","a"],["company:3","r"]]` {
+		t.Errorf("byte layout: %s", b)
+	}
+}

@@ -197,6 +197,65 @@ class PlannerTest(unittest.TestCase):
         self.assertEqual(self.run_cli('info')['side_events'], 344)
         self.assertEqual(self.run_cli('shortlist')[0]['id'], side)
 
+    def test_refresh_keeps_companies(self):
+        sid = self.run_cli('search', '--limit', '1')[0]['id']
+        source = Path(self.tmp.name) / 's.json'
+        source.write_text(json.dumps([{'id': sid, 'slug': 'x', 'title': 'X', 'starts_at': '2026-11-09T18:00:00Z',
+                                       'ends_at': '2026-11-09T18:30:00Z', 'location': {'id': 'l', 'name': 'L'}}]))
+        self.run_cli('refresh', '--json', str(source))
+        with closing(sqlite3.connect(self.state)) as c, closing(sqlite3.connect(SKILL / 'assets/websummit.db')) as s:
+            for t in ('company', 'company_tag', 'company_fact', 'company_link', 'company_person',
+                      'company_event', 'company_event_speaker', 'company_endorsement'):
+                self.assertEqual(c.execute(f'SELECT count(*) FROM {t}').fetchone(), s.execute(f'SELECT count(*) FROM {t}').fetchone(), t)
+            self.assertEqual(c.execute('PRAGMA foreign_key_check').fetchall(), [])
+            self.assertEqual(c.execute("SELECT count(*) FROM company_event WHERE session_id IS NOT NULL").fetchone()[0] <= 248, True)
+            self.assertEqual(c.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()[0], '3')
+
+    def test_refresh_relinks_company_events_by_event_uuid(self):
+        with closing(sqlite3.connect(SKILL / 'assets/websummit.db')) as c:
+            hosted = c.execute('SELECT event_uuid FROM company_event WHERE session_id IS NOT NULL LIMIT 1').fetchone()[0]
+            other = c.execute('SELECT id FROM session WHERE id NOT IN (SELECT event_uuid FROM company_event) '
+                              "AND id NOT LIKE 'side:%' LIMIT 1").fetchone()[0]
+
+        def refresh(sid):
+            source = Path(self.tmp.name) / 's.json'
+            source.write_text(json.dumps([{'id': sid, 'slug': 'x', 'title': 'X', 'starts_at': '2026-11-09T18:00:00Z',
+                                           'ends_at': '2026-11-09T18:30:00Z', 'location': {'id': 'l', 'name': 'L'}}]))
+            self.run_cli('refresh', '--json', str(source))
+            with closing(sqlite3.connect(self.state)) as c:
+                return c.execute('SELECT DISTINCT session_id FROM company_event WHERE event_uuid=?', (hosted,)).fetchall()
+
+        self.assertEqual(refresh(hosted), [(hosted,)])
+        self.assertEqual(refresh(other), [(None,)])      # session vanished: link dropped, event kept
+        self.assertEqual(refresh(hosted), [(hosted,)])   # and returns: relinked by event_uuid
+
+    def test_session_companies_hosts_before_speakers(self):
+        sys.path.insert(0, str(SKILL / 'scripts'))
+        import companies
+        with closing(sqlite3.connect(SKILL / 'assets/websummit.db')) as c:
+            both = 0
+            for (sid,) in c.execute("SELECT id FROM session WHERE id NOT IN (SELECT session_id FROM side_event)").fetchall():
+                rows = companies.session_companies(c, sid)
+                key = lambda r: (r['relation'] != 'host', r['name'], int(r['id'].split(':')[1]))
+                self.assertEqual(rows, sorted(rows, key=key), sid)
+                both += {r['relation'] for r in rows} == {'host', 'speaker'}
+            self.assertGreater(both, 0)  # the property is not vacuous
+
+    def test_old_personal_database_gains_companies(self):
+        old = Path(self.tmp.name) / 'old.db'
+        with closing(sqlite3.connect(SKILL / 'assets/websummit.db')) as src, closing(sqlite3.connect(old)) as dst:
+            src.backup(dst)
+            for t in ('company_endorsement', 'company_event_speaker', 'company_event', 'company_person',
+                      'company_link', 'company_fact', 'company_tag', 'company'):
+                dst.execute(f'DROP TABLE {t}')
+            dst.execute("UPDATE meta SET value='2' WHERE key='schema_version'")
+            dst.commit()
+        self.state = old
+        self.assertEqual(self.run_cli('info')['sessions'], 1122)
+        with closing(sqlite3.connect(old)) as c:
+            self.assertEqual(c.execute('SELECT count(*) FROM company').fetchone()[0], 2872)
+            self.assertEqual(c.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()[0], '3')
+
     def test_import_side_events_filters_and_is_idempotent(self):
         sys.path.insert(0, str(SKILL / 'scripts'))
         import import_side_events as ise

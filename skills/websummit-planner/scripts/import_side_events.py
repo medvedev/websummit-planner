@@ -34,7 +34,8 @@ def utc(iso):
 def ensure_schema(con):
     if not con.execute("SELECT 1 FROM sqlite_master WHERE name='side_event'").fetchone():
         con.executescript(side_upgrade_sql())
-    con.execute("INSERT OR REPLACE INTO meta VALUES ('schema_version','2')")
+    has_company = con.execute("SELECT 1 FROM sqlite_master WHERE name='company'").fetchone()
+    con.execute("INSERT OR REPLACE INTO meta VALUES ('schema_version', ?)", ('3' if has_company else '2',))
 
 
 def wanted(e):

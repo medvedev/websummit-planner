@@ -7,15 +7,13 @@ from pathlib import Path
 import sqlite3
 import sys
 import tempfile
-from urllib.parse import quote
 from contextlib import contextmanager
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import companies  # noqa: E402
+from companies import event_url  # noqa: E402,F401
+
 SEED = Path(__file__).resolve().parents[1] / 'assets' / 'websummit.db'
-
-
-def event_url(event_id):
-    """Universal link that opens an official event in the Web Summit mobile app."""
-    return 'https://link.websummit.com/?url=' + quote('https://attend.websummit.com/dl/lis26/event?id=' + event_id + '&mobile=true', safe='')
 
 
 def default_db():
@@ -61,18 +59,23 @@ def initialize(path):
 
 
 def upgrade(path):
-    """Add side-event support to a personal database created from an older snapshot (in place, one transaction)."""
-    from build_db import side_upgrade_sql
+    """Add side-event and company support to a personal database from an older snapshot (in place, one transaction)."""
+    from build_db import side_upgrade_sql, company_upgrade_sql, carry_companies
     with connect(path) as con:
-        if con.execute("SELECT 1 FROM sqlite_master WHERE name='side_event'").fetchone():
+        need_side = not con.execute("SELECT 1 FROM sqlite_master WHERE name='side_event'").fetchone()
+        need_company = not con.execute("SELECT 1 FROM sqlite_master WHERE name='company'").fetchone()
+        if not (need_side or need_company):
             return
-        con.executescript('BEGIN;' + side_upgrade_sql())
+        con.executescript('BEGIN;' + (side_upgrade_sql() if need_side else '') + (company_upgrade_sql() if need_company else ''))
         con.execute('ATTACH ? AS seed', (str(SEED),))
-        con.execute("INSERT OR IGNORE INTO stage SELECT * FROM seed.stage WHERE id LIKE 'side:%'")
-        con.execute("INSERT OR IGNORE INTO track SELECT * FROM seed.track WHERE name='Side event'")
-        con.execute('INSERT OR IGNORE INTO session SELECT * FROM seed.session WHERE id IN (SELECT session_id FROM seed.side_event)')
-        con.execute('INSERT OR IGNORE INTO side_event SELECT * FROM seed.side_event')
-        con.execute("INSERT OR REPLACE INTO meta VALUES ('schema_version','2')")
+        if need_side:
+            con.execute("INSERT OR IGNORE INTO stage SELECT * FROM seed.stage WHERE id LIKE 'side:%'")
+            con.execute("INSERT OR IGNORE INTO track SELECT * FROM seed.track WHERE name='Side event'")
+            con.execute('INSERT OR IGNORE INTO session SELECT * FROM seed.session WHERE id IN (SELECT session_id FROM seed.side_event)')
+            con.execute('INSERT OR IGNORE INTO side_event SELECT * FROM seed.side_event')
+        if need_company:
+            carry_companies(con, 'seed')
+        con.execute("INSERT OR REPLACE INTO meta VALUES ('schema_version', '3')")
         con.commit()
         con.execute('DETACH seed')
 
@@ -168,6 +171,16 @@ def parser():
     s.add_argument('--limit', type=int, default=30)
     s.add_argument('--kind', choices=['official', 'side', 'all'], default='official',
                    help='official Web Summit sessions (default), community side events, or both')
+    c = sub.add_parser('companies', help='search the company catalog')
+    c.add_argument('query', nargs='?', default='', help='literal substring across name, description, location, tags')
+    c.add_argument('--industry')
+    c.add_argument('--country')
+    c.add_argument('--tier')
+    c.add_argument('--tag', action='append', default=[], help='exact tag (case-insensitive); repeat to AND')
+    c.add_argument('--fact', action='append', default=[], help='case-insensitive substring of a fact; repeat to AND')
+    c.add_argument('--limit', type=int, default=30)
+    cd = sub.add_parser('company', help='company details by id (company:<n> or <n>)')
+    cd.add_argument('ids', nargs='+')
     d = sub.add_parser('details')
     d.add_argument('ids', nargs='+')
     sub.add_parser('shortlist')
@@ -208,17 +221,28 @@ def run(a):
             for sid in ids:
                 if not con.execute('SELECT 1 FROM session WHERE id=?', (sid,)).fetchone():
                     raise ValueError('Unknown session: ' + sid)
+        if a.command in ('search', 'companies') and a.limit < 1:
+            raise ValueError('--limit must be positive')
         if a.command == 'buffer' and a.minutes < 0:
             raise ValueError('Travel buffer must be nonnegative')
-        if a.command == 'search' and a.limit < 1:
-            raise ValueError('--limit must be positive')
         if a.command == 'info':
             return {'database': str(source), 'personal_database': str(path),
                     'sessions': con.execute('SELECT count(*) FROM session WHERE id NOT IN (SELECT session_id FROM side_event)').fetchone()[0],
                     'side_events': con.execute('SELECT count(*) FROM side_event').fetchone()[0],
                     'days': [r[0] for r in con.execute('SELECT DISTINCT day FROM session ORDER BY day')],
                     'metadata': dict(con.execute('SELECT * FROM meta')),
-                    'settings': dict(con.execute('SELECT * FROM setting'))}
+                    'settings': dict(con.execute('SELECT * FROM setting')),
+                    **companies.info_counts(con)}
+        if a.command == 'companies':
+            return companies.search_companies(con, a.query, a.industry, a.country, a.tier, a.tag, a.fact, a.limit)
+        if a.command == 'company':
+            nums = []
+            for raw in a.ids:
+                n = companies.parse_company_id(raw)
+                if n is None or not con.execute('SELECT 1 FROM company WHERE id=?', (n,)).fetchone():
+                    raise ValueError('Unknown company: ' + raw)
+                nums.append(n)
+            return companies.company_objects(con, nums)
         if a.command == 'search':
             where, params = [], []
             if a.query:
@@ -239,6 +263,9 @@ def run(a):
             found = rows(con, 'SELECT * FROM v_session_full WHERE id IN (' + ','.join('?' for _ in a.ids) + ') ORDER BY day,start,id', a.ids)
             for r in found:
                 if r['kind'] == 'official':
+                    host = companies.session_companies(con, r['id'])
+                    if host:
+                        r['companies'] = host
                     r['people'] = rows(con, 'SELECT p.* FROM session_person sp JOIN person p ON p.id=sp.person_id WHERE sp.session_id=? ORDER BY sp.position', (r['id'],))
                     for person in r['people']:
                         person['url'] = 'https://attend.websummit.com/lis26/profiles/' + person['id']

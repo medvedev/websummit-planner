@@ -22,7 +22,8 @@ def main():
     with closing(socket.socket()) as sock:
         sock.bind(("127.0.0.1", 0))
         port = sock.getsockname()[1]
-    env = {**os.environ, "PORT": str(port), "SCHEDULE_PATH": str(ROOT / "service/data/schedule.json")}
+    env = {**os.environ, "PORT": str(port), "SCHEDULE_PATH": str(ROOT / "service/data/schedule.json"),
+           "COMPANIES_PATH": str(ROOT / "service/data/companies.json")}
     with tempfile.TemporaryFile() as log:
         process = subprocess.Popen([str(ROOT / "service/server")], env=env, stdout=log, stderr=log)
         try:
@@ -52,7 +53,7 @@ def main():
 
             rpc("initialize", {"protocolVersion": "2025-03-26", "capabilities": {}, "clientInfo": {"name": "parity", "version": "1"}})
             tools = rpc("tools/list", {})["tools"]
-            assert {t["name"] for t in tools} == {"info", "search", "details", "fetch", "check_plan", "encode_plan", "decode_plan"}
+            assert {t["name"] for t in tools} == {"info", "search", "details", "fetch", "check_plan", "encode_plan", "decode_plan", "search_companies", "company_details"}
             assert all(t["annotations"]["readOnlyHint"] for t in tools)
             assert call("info", {})["sessions"] == data["info"]["sessions"]
             rows = data["sessions"]
@@ -81,7 +82,26 @@ def main():
             assert call("fetch", {"id": sid})["id"] == sid
             assert call("search", {"kind": "side", "limit": 2})["results"]
             assert call("check_plan", {"sessions": [{"id": "missing", "status": "must"}]})["unknown"] == ["missing"]
-            print("MCP HTTP + 3 Python/SQLite conflict parity fixtures + legacy plan-code compatibility: PASS")
+            companies = json.loads((ROOT / "service/data/companies.json").read_text())
+            assert call("info", {})["companies"] == len(companies["companies"])
+            with tempfile.TemporaryDirectory() as tmp:
+                cdb = str(Path(tmp) / "c.db")
+
+                def pyc(*args):
+                    return json.loads(subprocess.check_output([sys.executable, str(PLANNER), "--db", cdb, *args]))
+                cases = [({"query": "drone", "limit": 40}, ["drone", "--limit", "40"]),
+                         ({"facts": ["seed", "actively fundraising"], "limit": 40}, ["--fact", "seed", "--fact", "actively fundraising", "--limit", "40"]),
+                         ({"tier": "Beta", "industry": "AI & machine learning", "facts": ["Series A"], "limit": 40},
+                          ["--tier", "Beta", "--industry", "AI & machine learning", "--fact", "Series A", "--limit", "40"])]
+                for args, cli in cases:
+                    got, want = call("search_companies", args)["results"], pyc("companies", *cli)
+                    assert got == want and want, (args, len(got), len(want))
+                for ids in (["company:62217"], ["101575", "company:62217"]):
+                    assert call("company_details", {"company_ids": ids}) == pyc("company", *ids), ids
+                assert call("fetch", {"id": "company:62217"})["title"] == "MakeLocal"
+                plan = call("check_plan", {"sessions": [{"id": "company:62217", "status": "must"}]})
+                assert [c["id"] for c in plan["companies"]] == ["company:62217"] and plan["unknown"] == [], plan
+            print("MCP HTTP + 3 Python/SQLite conflict parity fixtures + legacy plan-code compatibility + company search/details parity: PASS")
         finally:
             process.terminate()
             try:

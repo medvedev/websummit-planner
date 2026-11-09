@@ -1,0 +1,319 @@
+{
+ "info": {
+  "built_at": "2026-11-07T22:05:48Z",
+  "companies": 8,
+  "notice": "Unofficial company data from the Web Summit attendee portal; facts are self-reported by the companies."
+ },
+ "companies": [
+  {
+   "id": "company:3",
+   "uuid": "uuid-3",
+   "name": "Zeta Labs",
+   "tier": "Growth",
+   "industry": "Software",
+   "country": "Portugal",
+   "location": "Porto, Portugal",
+   "description": "Zeta builds tools.",
+   "website": "https://example3.test",
+   "logo_url": null,
+   "url": "https://attend.websummit.com/lis26/company/3",
+   "tags": [
+    "SaaS"
+   ],
+   "facts": [
+    "Pre-seed",
+    "Actively Fundraising"
+   ],
+   "links": [
+    {
+     "kind": "website",
+     "url": "https://example3.test"
+    }
+   ],
+   "sessions": [],
+   "activities": [],
+   "speakers": [],
+   "team": [],
+   "endorses": []
+  },
+  {
+   "id": "company:4",
+   "uuid": "uuid-4",
+   "name": "Álfa Ünïcode",
+   "tier": "Alpha",
+   "industry": "Defence & security",
+   "country": "Germany",
+   "location": "München, Germany",
+   "description": "Dröne sensors für alle.",
+   "website": "https://example4.test",
+   "logo_url": null,
+   "url": "https://attend.websummit.com/lis26/company/4",
+   "tags": [
+    "Drone",
+    "Sensors"
+   ],
+   "facts": [
+    "Series A"
+   ],
+   "links": [
+    {
+     "kind": "website",
+     "url": "https://example4.test"
+    }
+   ],
+   "sessions": [],
+   "activities": [],
+   "speakers": [],
+   "team": [],
+   "endorses": []
+  },
+  {
+   "id": "company:5",
+   "uuid": "uuid-5",
+   "name": "Aardvark",
+   "tier": "Alpha",
+   "industry": "Software",
+   "country": "Spain",
+   "location": "Madrid, Spain",
+   "description": "Stand-only startup.",
+   "website": "https://example5.test",
+   "logo_url": null,
+   "url": "https://attend.websummit.com/lis26/company/5",
+   "tags": [],
+   "facts": [
+    "Seed"
+   ],
+   "links": [
+    {
+     "kind": "website",
+     "url": "https://example5.test"
+    }
+   ],
+   "sessions": [],
+   "activities": [
+    {
+     "title": "Demo night",
+     "time_text": "Tuesday evening",
+     "location": "Stand A1",
+     "type": "Stand events",
+     "description": "Come by"
+    }
+   ],
+   "speakers": [],
+   "team": [],
+   "endorses": []
+  },
+  {
+   "id": "company:6",
+   "uuid": "uuid-6",
+   "name": "Media Co",
+   "tier": "Media Partner",
+   "industry": "Media",
+   "country": null,
+   "location": null,
+   "description": null,
+   "website": "https://example6.test",
+   "logo_url": null,
+   "url": "https://attend.websummit.com/lis26/company/6",
+   "tags": [],
+   "facts": [
+    "Not specified"
+   ],
+   "links": [
+    {
+     "kind": "website",
+     "url": "https://example6.test"
+    }
+   ],
+   "sessions": [],
+   "activities": [],
+   "speakers": [],
+   "team": [],
+   "endorses": []
+  },
+  {
+   "id": "company:7",
+   "uuid": "uuid-7",
+   "name": "NoTier Inc",
+   "tier": null,
+   "industry": null,
+   "country": null,
+   "location": null,
+   "description": "No tier set.",
+   "website": "https://example7.test",
+   "logo_url": null,
+   "url": "https://attend.websummit.com/lis26/company/7",
+   "tags": [
+    "drone"
+   ],
+   "facts": [],
+   "links": [
+    {
+     "kind": "website",
+     "url": "https://example7.test"
+    }
+   ],
+   "sessions": [],
+   "activities": [],
+   "speakers": [],
+   "team": [],
+   "endorses": []
+  },
+  {
+   "id": "company:8",
+   "uuid": "uuid-8",
+   "name": "Beta Two",
+   "tier": "Beta",
+   "industry": "AI",
+   "country": "Portugal",
+   "location": "Lisbon, Portugal",
+   "description": "AI for everyone.",
+   "website": "https://example8.test",
+   "logo_url": null,
+   "url": "https://attend.websummit.com/lis26/company/8",
+   "tags": [
+    "AI"
+   ],
+   "facts": [
+    "Seed",
+    "Woman Founder",
+    "Markets: Europe"
+   ],
+   "links": [
+    {
+     "kind": "website",
+     "url": "https://example8.test"
+    }
+   ],
+   "sessions": [],
+   "activities": [],
+   "speakers": [],
+   "team": [],
+   "endorses": []
+  },
+  {
+   "id": "company:62217",
+   "uuid": "uuid-62217",
+   "name": "MakeLocal",
+   "tier": "Beta",
+   "industry": "Defence & security",
+   "country": "Ukraine",
+   "location": "Kyiv, Ukraine",
+   "description": "Drone manufacturing hubs.",
+   "website": "https://example62217.test",
+   "logo_url": null,
+   "url": "https://attend.websummit.com/lis26/company/62217",
+   "tags": [
+    "drone",
+    "Defence"
+   ],
+   "facts": [
+    "Seed",
+    "Actively Fundraising",
+    "Markets: Europe"
+   ],
+   "links": [
+    {
+     "kind": "website",
+     "url": "https://example62217.test"
+    }
+   ],
+   "sessions": [
+    {
+     "id": "e2b57359-67e7-4227-918f-546b146166ed",
+     "day": "2026-11-10",
+     "start": "10:00",
+     "end": "10:15",
+     "stage": "E173",
+     "title": "What if every customer conversation",
+     "kind": "official",
+     "type": "Stand events",
+     "url": "https://link.websummit.com/?url=x"
+    }
+   ],
+   "activities": [],
+   "speakers": [
+    {
+     "id": "person-1",
+     "name": "Ann Speaker",
+     "job_title": "CEO",
+     "role": "Founder",
+     "url": "https://attend.websummit.com/lis26/profiles/person-1",
+     "sessions": [
+      "e2b57359-67e7-4227-918f-546b146166ed"
+     ]
+    }
+   ],
+   "team": [],
+   "endorses": []
+  },
+  {
+   "id": "company:101575",
+   "uuid": "uuid-101575",
+   "name": "ICEX España Exportación e Inversiones E.P.E",
+   "tier": "Partner",
+   "industry": "Politics, government & international trade",
+   "country": "Spain",
+   "location": "Madrid, Spain",
+   "description": "ICEX supports internationalization.",
+   "website": "https://example101575.test",
+   "logo_url": null,
+   "url": "https://attend.websummit.com/lis26/company/101575",
+   "tags": [
+    "Media"
+   ],
+   "facts": [],
+   "links": [
+    {
+     "kind": "website",
+     "url": "https://example101575.test"
+    }
+   ],
+   "sessions": [
+    {
+     "id": "66205ff8-6ea5-42d4-ac51-eb26c65a5d02",
+     "day": "2026-11-10",
+     "start": "09:24",
+     "end": "09:54",
+     "stage": "Centre Stage",
+     "title": "Breakout startups",
+     "kind": "official",
+     "type": "Meetup",
+     "url": "https://link.websummit.com/?url=x"
+    }
+   ],
+   "activities": [
+    {
+     "title": "Undated",
+     "time_text": "All week",
+     "location": "Hall 4",
+     "type": "Stand events",
+     "description": null
+    }
+   ],
+   "speakers": [],
+   "team": [
+    {
+     "person_uuid": "team-1",
+     "role": "Director",
+     "tier": "Partner",
+     "industry": null,
+     "country": "Spain",
+     "url": "https://attend.websummit.com/lis26/profiles/team-1"
+    }
+   ],
+   "endorses": [
+    {
+     "id": "company:62217",
+     "name": "MakeLocal",
+     "url": "https://attend.websummit.com/lis26/company/62217"
+    },
+    {
+     "id": null,
+     "name": "Outside Co",
+     "url": null
+    }
+   ]
+  }
+ ]
+}

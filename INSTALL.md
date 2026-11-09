@@ -50,9 +50,10 @@ Read the installed `SKILL.md`. Use the selected absolute interpreter path to run
 ```sh
 "<python>" "<installed-skill>/scripts/planner.py" info
 "<python>" "<installed-skill>/scripts/planner.py" search --limit 1
+"<python>" "<installed-skill>/scripts/planner.py" companies --limit 1
 ```
 
-Require successful JSON output with nonzero session count and a real session before declaring installation usable. These checks need no schedule refresh and do not create personal state. Do not save interests, create a shortlist, or refresh merely to test installation.
+Require successful JSON output with nonzero session count, a real session and a real company row before declaring installation usable. These checks need no schedule refresh and do not create personal state. Do not save interests, create a shortlist, or refresh merely to test installation.
 
 Codex can invoke `$websummit-planner`; Claude Code can invoke `/websummit-planner`; Gemini CLI activates it automatically from the request (run `/skills reload`, then `/skills list` to confirm it is discovered). If native discovery needs a new session, read and use the installed SKILL.md explicitly in the current session, then tell the user how to invoke it later. Ask about their interests and available days and begin planning.
 
