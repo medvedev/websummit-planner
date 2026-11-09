@@ -57,7 +57,7 @@ Rules for the assistant:
 
 Files:
 - [web-instructions.md]({base}web-instructions.md): instructions for any web assistant
-- [agenda.py]({base}agenda.py): local Markdown/PDF/ICS renderer (use --schedule schedule.json)
+- [agenda.py]({base}agenda.py): local Markdown/PDF/ICS renderer (use --schedule schedule.json); also download companies.py into the same folder
 - [schedule-compact.md]({base}schedule-compact.md): one line per session
 {day_links}
 - [side-events.md]({base}side-events.md): community side events (7-14 Nov, ids start with `side:`), with venue, price and link
@@ -125,6 +125,7 @@ def main():
     build_zip(out / 'websummit-planner.zip')
     shutil.copy(ROOT / 'DATA_NOTICE.md', out / 'DATA_NOTICE.md')
     shutil.copy(SKILL / 'scripts' / 'agenda.py', out / 'agenda.py')
+    shutil.copy(SKILL / 'scripts' / 'companies.py', out / 'companies.py')  # imported by agenda.py
     shutil.copy(ROOT / 'docs' / 'web-instructions.md', out / 'web-instructions.md')
     base = a.base_url.rstrip('/') + '/'
     day_links = '\n'.join(f'- [schedule-{d}.md]({base}schedule-{d}.md): full descriptions for {d}' for d in info['days'])
