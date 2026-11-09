@@ -27,7 +27,7 @@ type Company struct {
 	Num                      int
 	ID, Name, URL            string
 	Tier, Industry, Location *string
-	Country                  string
+	Country, Desc            string
 	Facts, Tags              []string
 	raw                      json.RawMessage
 	lcName, lcDesc, lcLoc    string
@@ -167,7 +167,7 @@ func ParseCompanies(b []byte) (*Companies, error) {
 		}
 		co := &Company{
 			Num: n, ID: *p.ID, Name: *p.Name, Tier: p.Tier, Industry: p.Industry, Location: p.Location,
-			Country: deref(p.Country), Facts: p.Facts, Tags: p.Tags, raw: compact.Bytes(),
+			Country: deref(p.Country), Desc: deref(p.Desc), Facts: p.Facts, Tags: p.Tags, raw: compact.Bytes(),
 			URL:    "https://attend.websummit.com/lis26/company/" + strconv.Itoa(n),
 			lcName: strings.ToLower(*p.Name), lcDesc: lower(p.Desc), lcLoc: lower(p.Location), rank: tierRank(p.Tier),
 		}
@@ -310,4 +310,20 @@ func (c *Companies) Facets() map[string]map[string]int {
 		}
 	}
 	return f
+}
+
+// fetch implements ChatGPT's fetch contract for a company.
+func (co *Company) fetch() map[string]any {
+	facts := co.Facts
+	if facts == nil {
+		facts = []string{}
+	}
+	return map[string]any{
+		"id":    co.ID,
+		"title": co.Name,
+		"text": fmt.Sprintf("%s · %s · %s\n%s\n%s", deref(co.Tier), deref(co.Industry), deref(co.Location),
+			strings.Join(facts, "; "), co.Desc),
+		"url":      co.URL,
+		"metadata": map[string]any{"tier": co.Tier, "industry": co.Industry, "location": co.Location, "facts": facts},
+	}
 }

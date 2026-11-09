@@ -9,4 +9,4 @@ service/server
 !skills/websummit-planner/assets/
 !skills/websummit-planner/assets/websummit.db
 !skills/websummit-planner/scripts/
-!skills/websummit-planner/scripts/export_text.py
+!skills/websummit-planner/scripts/*.py

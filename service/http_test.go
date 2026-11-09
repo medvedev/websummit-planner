@@ -15,7 +15,7 @@ import (
 
 func newTestServer(t *testing.T) (*httptest.Server, *Dataset) {
 	t.Helper()
-	d := fixture(t)
+	d := fixture(t).WithCompanies(companyFixture(t))
 	ts := httptest.NewServer(NewHandler(d))
 	t.Cleanup(ts.Close)
 	return ts, d
@@ -59,7 +59,7 @@ func TestMCPInitializeListAndAnnotations(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := map[string]bool{"info": true, "search": true, "details": true, "check_plan": true, "encode_plan": true, "decode_plan": true, "fetch": true}
+	want := map[string]bool{"info": true, "search": true, "details": true, "check_plan": true, "encode_plan": true, "decode_plan": true, "fetch": true, "search_companies": true, "company_details": true}
 	if len(lt.Tools) != len(want) {
 		t.Errorf("tools = %d", len(lt.Tools))
 	}
@@ -176,6 +176,13 @@ func TestMCPValidationFailures(t *testing.T) {
 		{"decode_plan", map[string]any{"code": strings.Repeat("A", 24001)}},
 		{"fetch", map[string]any{"id": long}},
 		{"fetch", map[string]any{}},
+		{"search_companies", map[string]any{"facts": make([]string, 11)}},
+		{"search_companies", map[string]any{"tags": make([]string, 11)}},
+		{"search_companies", map[string]any{"limit": 101}},
+		{"search_companies", map[string]any{"query": strings.Repeat("q", 201)}},
+		{"company_details", map[string]any{"company_ids": []string{}}},
+		{"company_details", map[string]any{"company_ids": make([]string, 21)}},
+		{"company_details", map[string]any{}},
 	}
 	for _, c := range bad {
 		res, err := cs.CallTool(context.Background(), &mcp.CallToolParams{Name: c.tool, Arguments: c.args})
@@ -397,5 +404,68 @@ func TestMCPMaximumEscapedPlanCodeRoundTrip(t *testing.T) {
 	}
 	if len(decoded.Sessions) != len(plan) || decoded.Sessions[0] != plan[0] {
 		t.Fatal("maximum escaped plan failed HTTP roundtrip")
+	}
+}
+
+func TestMCPCompanyTools(t *testing.T) {
+	ts, _ := newTestServer(t)
+	cs := connect(t, ts)
+	lt, err := cs.ListTools(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	have := map[string]bool{}
+	for _, tool := range lt.Tools {
+		have[tool.Name] = true
+	}
+	if !have["search_companies"] || !have["company_details"] {
+		t.Fatalf("tools: %v", have)
+	}
+	txt, isErr := callText(t, cs, "search_companies", map[string]any{"facts": []string{"seed", "actively fundraising"}, "tags": []string{"drone"}})
+	var sr struct {
+		Results []map[string]any `json:"results"`
+	}
+	if err := json.Unmarshal([]byte(txt), &sr); err != nil || isErr || len(sr.Results) != 1 || sr.Results[0]["id"] != "company:62217" {
+		t.Fatalf("search_companies = %s", txt)
+	}
+	for _, k := range []string{"id", "name", "tier", "industry", "location", "facts", "url"} {
+		if _, ok := sr.Results[0][k]; !ok {
+			t.Errorf("row lacks %s", k)
+		}
+	}
+	txt, _ = callText(t, cs, "company_details", map[string]any{"company_ids": []string{"company:62217", "101575", "company:999"}})
+	var objs []map[string]any
+	if err := json.Unmarshal([]byte(txt), &objs); err != nil || len(objs) != 2 || objs[0]["id"] != "company:62217" || objs[1]["id"] != "company:101575" {
+		t.Fatalf("company_details = %.300s", txt)
+	}
+	txt, _ = callText(t, cs, "info", map[string]any{})
+	if !strings.Contains(txt, `"companies":8`) || !strings.Contains(txt, `"company_facets"`) {
+		t.Errorf("info lacks companies: %.300s", txt)
+	}
+	if init := cs.InitializeResult(); !strings.Contains(init.Instructions, "search_companies") || strings.Contains(init.Instructions, "no company IDs") {
+		t.Errorf("instructions: %s", init.Instructions)
+	}
+	if ServerVersion != "2.1.0" {
+		t.Errorf("version %s", ServerVersion)
+	}
+}
+
+func TestFetchCompany(t *testing.T) {
+	ts, _ := newTestServer(t)
+	cs := connect(t, ts)
+	txt, _ := callText(t, cs, "fetch", map[string]any{"id": "company:62217"})
+	var f struct {
+		ID, Title, Text, URL string
+		Metadata             map[string]any
+	}
+	if err := json.Unmarshal([]byte(txt), &f); err != nil || f.ID != "company:62217" || f.Title != "MakeLocal" ||
+		f.URL != "https://attend.websummit.com/lis26/company/62217" ||
+		!strings.HasPrefix(f.Text, "Beta · Defence & security · Kyiv, Ukraine\nSeed; Actively Fundraising; Markets: Europe\nDrone manufacturing hubs.") ||
+		f.Metadata["tier"] != "Beta" || f.Metadata["location"] != "Kyiv, Ukraine" {
+		t.Fatalf("fetch company = %s", txt)
+	}
+	txt, _ = callText(t, cs, "fetch", map[string]any{"id": "company:424242"})
+	if txt != `{"error":"unknown company"}` {
+		t.Errorf("unknown company = %s", txt)
 	}
 }

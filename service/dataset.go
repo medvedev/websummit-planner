@@ -223,6 +223,10 @@ func (d *Dataset) Info() map[string]any {
 	m["snapshot_sha256"] = d.sha
 	m["server_version"] = ServerVersion
 	m["dates_notice"] = d.datesNotice()
+	if d.companies != nil {
+		m["companies"] = d.companies.Count()
+		m["company_facets"] = d.companies.Facets()
+	}
 	return m
 }
 
@@ -324,6 +328,13 @@ func (d *Dataset) Details(ids []string) []json.RawMessage {
 
 // Fetch implements ChatGPT's fetch contract: {id,title,text,url,metadata}.
 func (d *Dataset) Fetch(id string) map[string]any {
+	if _, isCompany := CompanyPlanID(id); isCompany {
+		co, ok := d.lookupCompany(id)
+		if !ok {
+			return map[string]any{"error": "unknown company"}
+		}
+		return co.fetch()
+	}
 	i, ok := d.byID[id]
 	if !ok {
 		return map[string]any{"error": "unknown session"}
@@ -369,10 +380,19 @@ type Conflict struct {
 	B    PlanRow `json:"b"`
 }
 
+// CompanyPlanRow is an untimed "company to meet" plan entry.
+type CompanyPlanRow struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	URL    string `json:"url"`
+	Status string `json:"status"`
+}
+
 type PlanResult struct {
-	Plan      []PlanRow  `json:"plan"`
-	Conflicts []Conflict `json:"conflicts"`
-	Unknown   []string   `json:"unknown"`
+	Plan      []PlanRow        `json:"plan"`
+	Conflicts []Conflict       `json:"conflicts"`
+	Unknown   []string         `json:"unknown"`
+	Companies []CompanyPlanRow `json:"companies,omitempty"`
 }
 
 func row(s *Session) PlanRow {
@@ -385,13 +405,33 @@ func row(s *Session) PlanRow {
 func (d *Dataset) CheckPlan(plan []PlanEntry, bufferMin int) PlanResult {
 	res := PlanResult{Plan: []PlanRow{}, Conflicts: []Conflict{}, Unknown: []string{}}
 	latest := make(map[int]string, len(plan))
+	companyLatest := map[*Company]string{}
 	for _, p := range plan {
 		if i, ok := d.byID[p.ID]; ok {
 			latest[i] = p.Status
+		} else if co, ok := d.lookupCompany(p.ID); ok {
+			companyLatest[co] = p.Status // untimed: never part of conflicts
 		} else {
 			res.Unknown = append(res.Unknown, p.ID)
 		}
 	}
+	for co, st := range companyLatest {
+		if st == "maybe" || st == "must" {
+			res.Companies = append(res.Companies, CompanyPlanRow{co.ID, co.Name, co.URL, st})
+		}
+	}
+	slices.SortFunc(res.Companies, func(a, b CompanyPlanRow) int {
+		if (a.Status == "must") != (b.Status == "must") {
+			if a.Status == "must" {
+				return -1
+			}
+			return 1
+		}
+		if r := strings.Compare(a.Name, b.Name); r != 0 {
+			return r
+		}
+		return strings.Compare(a.ID, b.ID)
+	})
 	active := make([]*Session, 0, len(latest))
 	for i, st := range latest {
 		if st == "maybe" || st == "must" {
@@ -442,6 +482,13 @@ func (d *Dataset) CheckPlan(plan []PlanEntry, bufferMin int) PlanResult {
 		res.Plan = append(res.Plan, r)
 	}
 	return res
+}
+
+func (d *Dataset) lookupCompany(id string) (*Company, bool) {
+	if d.companies == nil {
+		return nil, false
+	}
+	return d.companies.Lookup(id)
 }
 
 func cmpInt(a, b int64) int {

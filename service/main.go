@@ -1,6 +1,7 @@
 // Command service is the read-only Web Summit planner MCP server.
 //
-// It loads one schedule snapshot (SCHEDULE_PATH, default data/schedule.json)
+// It loads one schedule snapshot (SCHEDULE_PATH, default data/schedule.json) and
+// the company catalog (COMPANIES_PATH, default data/companies.json)
 // at startup, keeps it immutable in memory and serves stateless Streamable
 // HTTP MCP at /mcp on PORT (default 8080). It logs startup and shutdown only.
 package main
@@ -13,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"syscall"
 	"time"
 )
@@ -31,6 +33,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("load snapshot: %v", err)
 	}
+	companies, err := LoadCompanies(env("COMPANIES_PATH", "data/companies.json"))
+	if err != nil {
+		log.Fatalf("load companies: %v", err) // company tools are part of the contract
+	}
+	d.WithCompanies(companies)
+	debug.FreeOSMemory() // return the transient load buffers (snapshot + catalog JSON) to the OS
 	srv := &http.Server{
 		Addr:              net.JoinHostPort("", env("PORT", "8080")),
 		Handler:           NewHandler(d),
@@ -45,7 +53,7 @@ func main() {
 	defer stop()
 	errc := make(chan error, 1)
 	go func() { errc <- srv.ListenAndServe() }()
-	log.Printf("websummit-planner %s: %d sessions, snapshot sha256 %.12s, listening on %s", ServerVersion, len(d.sessions), d.sha, srv.Addr)
+	log.Printf("websummit-planner %s: %d sessions, %d companies, snapshot sha256 %.12s, listening on %s", ServerVersion, len(d.sessions), companies.Count(), d.sha, srv.Addr)
 
 	select {
 	case err := <-errc:

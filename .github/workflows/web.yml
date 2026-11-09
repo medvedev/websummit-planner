@@ -31,6 +31,10 @@ jobs:
             dist/schedule-*.md
             dist/side-events.md
             dist/schedule.json
+            dist/companies.json
+            dist/companies.md
+            dist/companies-compact.md
+            dist/companies.py
             dist/agenda.py
             dist/web-instructions.md
   release:
