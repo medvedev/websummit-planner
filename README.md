@@ -64,7 +64,11 @@ From this repository:
 python3 skills/websummit-planner/scripts/planner.py info
 python3 skills/websummit-planner/scripts/planner.py search robotics
 python3 skills/websummit-planner/scripts/planner.py search --day 2026-11-10 --limit 20
+python3 skills/websummit-planner/scripts/planner.py companies drone --fact seed --fact "actively fundraising"
+python3 skills/websummit-planner/scripts/planner.py company company:62217
 ```
+
+The snapshot also covers the 2,872 companies from the Web Summit attendee portal (collected 8 November 2026): search them by sector, tier, tags and self-reported facts (funding stage, "Actively Fundraising", markets), see which sessions they host or speak at, and add `company:<id>` entries to your plan as untimed "companies to meet". They appear in a "Companies to meet" section of Markdown/PDF agendas, never in the calendar file. Company and team links need a logged-in Web Summit app or portal. See the [data notice](DATA_NOTICE.md).
 
 All commands return JSON; help is available with `--help` or `COMMAND --help`. All displayed times are Europe/Lisbon. Search uses literal substring matching, with SQLite's built-in case handling (ASCII case-insensitive).
 
@@ -98,7 +102,7 @@ Skill format and installation references: [OpenAI skills](https://developers.ope
 
 The public source is read-only. Keep your shortlist and notes in your assistant's context.
 See [web instructions](docs/web-instructions.md) for Claude, ChatGPT, Codex web and Gemini.
-The distribution includes a skill ZIP, schedule JSON, per-day text and an agenda exporter.
+The distribution includes a skill ZIP, schedule JSON, per-day text, company files (`companies-compact.md`, `companies.md`, `companies.json`) and an agenda exporter (`agenda.py` with `companies.py`).
 No Gemini subscription or model API key is required for the file-upload route.
 
 Ask your agent: “Use the Web Summit snapshot, help me choose sessions, then create my
@@ -118,5 +122,7 @@ configuration and deployment to a dedicated project. Deployment builds Docker lo
 
 
 Live connector: **https://websummit-planner-380110762187.us-central1.run.app/mcp**.
+It offers `search_companies` and `company_details` next to the session tools (v2.1.0, after the next deployment).
+`mcp-worker/` is the legacy Cloudflare worker; it is kept for reference and has no company support.
 Use `/health` for the public health endpoint. Hosting uses Iowa, scale-to-zero and
 128 MiB memory; images are built locally and Cloud Build is disabled.

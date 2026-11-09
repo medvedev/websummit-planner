@@ -9,7 +9,7 @@ network dependency is needed. Plans remain in agent context; agenda exports run 
 
 ## Test and deploy
 
-    python3 skills/websummit-planner/scripts/export_text.py --out service/data
+    python3 skills/websummit-planner/scripts/export_text.py --out service/data   # writes schedule.json and companies.json
     cd service
     go test -race ./...
     go vet ./...
@@ -28,7 +28,8 @@ The final scratch image runs as UID 65532 without Python, Node or a shell.
 Endpoints: GET /health, POST /mcp. Cloud Run intercepts /healthz, so use /health.
 Each HTTP request accepts one JSON-RPC message; legacy batches are rejected before SDK
 dispatch. PORT defaults to 8080; SCHEDULE_PATH defaults to data/schedule.json locally,
-/data/schedule.json in the image. The service does not log request bodies or personal notes.
+/data/schedule.json in the image; COMPANIES_PATH defaults to data/companies.json locally,
+/data/companies.json in the image (a missing file is a startup error: company tools are part of the contract). The service does not log request bodies or personal notes.
 
 ## Configuration and permissions
 
