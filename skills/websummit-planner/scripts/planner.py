@@ -61,18 +61,23 @@ def initialize(path):
 
 
 def upgrade(path):
-    """Add side-event support to a personal database created from an older snapshot (in place, one transaction)."""
-    from build_db import side_upgrade_sql
+    """Add side-event and company support to a personal database from an older snapshot (in place, one transaction)."""
+    from build_db import side_upgrade_sql, company_upgrade_sql, carry_companies
     with connect(path) as con:
-        if con.execute("SELECT 1 FROM sqlite_master WHERE name='side_event'").fetchone():
+        need_side = not con.execute("SELECT 1 FROM sqlite_master WHERE name='side_event'").fetchone()
+        need_company = not con.execute("SELECT 1 FROM sqlite_master WHERE name='company'").fetchone()
+        if not (need_side or need_company):
             return
-        con.executescript('BEGIN;' + side_upgrade_sql())
+        con.executescript('BEGIN;' + (side_upgrade_sql() if need_side else '') + (company_upgrade_sql() if need_company else ''))
         con.execute('ATTACH ? AS seed', (str(SEED),))
-        con.execute("INSERT OR IGNORE INTO stage SELECT * FROM seed.stage WHERE id LIKE 'side:%'")
-        con.execute("INSERT OR IGNORE INTO track SELECT * FROM seed.track WHERE name='Side event'")
-        con.execute('INSERT OR IGNORE INTO session SELECT * FROM seed.session WHERE id IN (SELECT session_id FROM seed.side_event)')
-        con.execute('INSERT OR IGNORE INTO side_event SELECT * FROM seed.side_event')
-        con.execute("INSERT OR REPLACE INTO meta VALUES ('schema_version','2')")
+        if need_side:
+            con.execute("INSERT OR IGNORE INTO stage SELECT * FROM seed.stage WHERE id LIKE 'side:%'")
+            con.execute("INSERT OR IGNORE INTO track SELECT * FROM seed.track WHERE name='Side event'")
+            con.execute('INSERT OR IGNORE INTO session SELECT * FROM seed.session WHERE id IN (SELECT session_id FROM seed.side_event)')
+            con.execute('INSERT OR IGNORE INTO side_event SELECT * FROM seed.side_event')
+        if need_company:
+            carry_companies(con, 'seed')
+        con.execute("INSERT OR REPLACE INTO meta VALUES ('schema_version', '3')")
         con.commit()
         con.execute('DETACH seed')
 

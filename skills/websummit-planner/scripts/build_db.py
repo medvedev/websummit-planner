@@ -203,6 +203,20 @@ def company_upgrade_sql():
     return COMPANY_SCHEMA
 
 
+def carry_companies(con, alias):
+    """Copy company tables from an attached database; session_id survives only if the session exists."""
+    if not con.execute(f"SELECT 1 FROM {alias}.sqlite_master WHERE name='company'").fetchone():
+        return False
+    for t in COMPANY_TABLES:
+        if t == "company_event":
+            con.execute(f"INSERT OR IGNORE INTO company_event(company_id,event_uuid,session_id,title,time_text,location,type,description) "
+                        f"SELECT company_id,event_uuid,(SELECT id FROM main.session WHERE id=e.session_id),title,time_text,location,type,description "
+                        f"FROM {alias}.company_event e")
+        else:
+            con.execute(f"INSERT OR IGNORE INTO {t} SELECT * FROM {alias}.{t}")
+    return True
+
+
 def utc(iso):
     return datetime.fromisoformat(iso.replace("Z", "+00:00")).astimezone(timezone.utc)
 
@@ -251,6 +265,7 @@ def build(json_path, db_path):
             con.execute("INSERT OR IGNORE INTO track SELECT * FROM old.track WHERE name='Side event'")
             con.execute("INSERT OR IGNORE INTO session SELECT * FROM old.session WHERE id IN (SELECT session_id FROM old.side_event)")
             con.execute("INSERT OR IGNORE INTO side_event SELECT * FROM old.side_event")
+        carry_companies(con, "old")
         # keep only versions whose session still exists
         con.execute("INSERT INTO shortlist_version(version,session_id,status,score,note,created_at,created_by) "
                     "SELECT version,session_id,status,score,note,created_at,created_by FROM old.shortlist_version "
@@ -274,6 +289,6 @@ if __name__ == "__main__":
     a = ap.parse_args()
     carried = build(a.json, a.db)
     con = sqlite3.connect(a.db)
-    for t in ("session", "stage", "track", "person", "session_person", "side_event", "shortlist_version"):
+    for t in ("session", "stage", "track", "person", "session_person", "side_event", "shortlist_version", "company"):
         print(f"{t:18}{con.execute(f'select count(*) from {t}').fetchone()[0]}")
     print(f"carried over shortlist versions: {carried}")
