@@ -54,7 +54,43 @@ class WebBuildTest(unittest.TestCase):
                             '--format', 'ics', '--out', str(Path(tmp) / 'agenda.ics')], check=True, capture_output=True)
             self.assertIn('BEGIN:VEVENT', (Path(tmp) / 'agenda.ics').read_text())
             self.assertIn('websummit-planner/scripts/agenda.py', names)
+            comps = json.loads((out / 'companies.json').read_text(encoding='utf-8'))
+            self.assertEqual(len(comps['companies']), 2872)
+            self.assertEqual(comps['info']['companies'], 2872)
+            self.assertTrue(comps['info']['notice'])
+            self.assertEqual(sum(1 for l in (out / 'companies-compact.md').read_text(encoding='utf-8').splitlines() if l.startswith('company:')), 2872)
+            self.assertIn('## MakeLocal', (out / 'companies.md').read_text(encoding='utf-8'))
+            self.assertTrue(any(r.get('companies') for r in data['sessions']))
+            self.assertTrue(all(set(c) == {'id', 'name', 'relation'} for r in data['sessions'] for c in r.get('companies', [])))
+            self.assertTrue(all('companies' not in r for r in data['sessions'] if r['kind'] == 'side'))
+            self.assertIn('companies-compact.md', llms)
             self.assertIn('unofficial', (out / 'index.html').read_text(encoding='utf-8').lower())
+
+    def test_exports_have_no_restricted_links(self):
+        import re
+        email = re.compile(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}')
+        banned = ('rails/active_storage', 'linkedin.com/in/', 'pitch_deck')
+
+        def check(label, text):
+            for b in banned:
+                self.assertNotIn(b, text, label)
+            self.assertIsNone(email.search(text), label)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'dist'
+            subprocess.run([sys.executable, str(ROOT / 'tools/build_web.py'), '--out', str(out)], check=True, capture_output=True)
+            for f in out.glob('companies*'):
+                check(f.name, f.read_text(encoding='utf-8'))
+            sched = json.loads((out / 'schedule.json').read_text(encoding='utf-8'))
+            check('session companies', json.dumps([r.get('companies', []) for r in sched['sessions']]))
+            with zipfile.ZipFile(out / 'websummit-planner.zip') as z:
+                dbfile = Path(tmp) / 'zip.db'
+                dbfile.write_bytes(z.read('websummit-planner/assets/websummit.db'))
+            with closing(sqlite3.connect(dbfile)) as c:
+                tables = [r[0] for r in c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'company%'")]
+                self.assertEqual(len(tables), 8)
+                for t in tables:
+                    check(t, json.dumps(c.execute(f'SELECT * FROM {t}').fetchall(), ensure_ascii=False))
 
     def test_build_refuses_to_wipe_unrelated_directory(self):
         with tempfile.TemporaryDirectory() as tmp:

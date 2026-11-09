@@ -61,7 +61,18 @@ Files:
 - [schedule-compact.md]({base}schedule-compact.md): one line per session
 {day_links}
 - [side-events.md]({base}side-events.md): community side events (7-14 Nov, ids start with `side:`), with venue, price and link
-- [schedule.json]({base}schedule.json): the same data as JSON (each row has `kind`: official or side)
+- [schedule.json]({base}schedule.json): the same data as JSON (each row has `kind`: official or side;
+  official rows may list `companies` hosting or employing speakers)
+- [companies-compact.md]({base}companies-compact.md): one line per company (2,872): `company:<id> | name | tier | industry | location | facts | tags | url`
+- [companies.md]({base}companies.md): full company blocks with description, sessions and speakers
+- [companies.json]({base}companies.json): the same company data as JSON (agenda.py --companies)
+
+Companies (from the Web Summit attendee portal; facts are self-reported by the companies):
+- For "which companies ..." questions scan companies-compact.md (match facts such as `Seed`,
+  `Actively Fundraising`, and tags), then read companies.md for the shortlisted ones. Quote `company:<id>` and the link.
+- Companies are untimed "companies to meet": add them to plans as `company:<id>` entries; they never
+  take part in conflict checks or .ics files. Company links need a logged-in Web Summit app or portal.
+- Never guess company IDs or people's names; team members appear only as profile IDs.
 """
 
 
@@ -102,7 +113,7 @@ def build_index(links):
 <h1>Web Summit Lisbon 2026 Planner</h1>
 <p>Search the 9–12 Nov schedule (plus community side events, 7–14 Nov) and plan your days from the AI assistant you already use. Unofficial.</p>
 {''.join(cards)}
-<p>For any host: download <a href="web-instructions.md">assistant instructions</a>, <a href="schedule.json">schedule JSON</a> and <a href="agenda.py">agenda exporter</a>. Ask for Markdown, PDF or ICS files. File creation depends on the host; no calendar is modified automatically.</p><footer><p>Unofficial project, not affiliated with or endorsed by Web Summit. Schedule data from websummit.com
+<p>For any host: download <a href="web-instructions.md">assistant instructions</a>, <a href="schedule.json">schedule JSON</a> and <a href="agenda.py">agenda exporter</a> (with <a href="companies.py">companies.py</a>), plus <a href="companies-compact.md">companies</a> (<a href="companies.md">details</a>, <a href="companies.json">JSON</a>). Ask for Markdown, PDF or ICS files. File creation depends on the host; no calendar is modified automatically.</p><footer><p>Unofficial project, not affiliated with or endorsed by Web Summit. Schedule data from websummit.com
 (snapshot, may change); see <a href="DATA_NOTICE.md">data notice</a>. Takedown requests: open an issue on the repository
 and the data will be removed.</p></footer></body></html>"""
 
