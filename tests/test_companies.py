@@ -95,3 +95,68 @@ class ImportCompaniesTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+import json  # noqa: E402
+import subprocess  # noqa: E402
+
+
+class CompanyCliTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.state = Path(self.tmp.name) / 'personal.db'
+
+    def run_cli(self, *args, ok=True):
+        p = subprocess.run([sys.executable, str(SKILL / 'scripts/planner.py'), '--db', str(self.state), *args],
+                           capture_output=True, text=True, encoding='utf-8')
+        self.assertEqual(p.returncode == 0, ok, p.stderr)
+        return json.loads(p.stdout) if ok else p.stderr
+
+    def test_companies_fact_filter(self):
+        rows = self.run_cli('companies', '--fact', 'seed', '--fact', 'actively fundraising', '--limit', '100')
+        self.assertTrue(rows)
+        for r in rows:
+            low = [f.lower() for f in r['facts']]
+            self.assertTrue(any('seed' in f for f in low), r)
+            self.assertIn('actively fundraising', low)
+            self.assertTrue(r['id'].startswith('company:'))
+            self.assertEqual(r['url'], 'https://attend.websummit.com/lis26/company/' + r['id'].split(':')[1])
+
+    def test_companies_query_matches_tags(self):
+        ids = [r['id'] for r in self.run_cli('companies', 'drone', '--limit', '100')]
+        self.assertIn('company:62217', ids)
+
+    def test_companies_order_tier_then_name(self):
+        rows = self.run_cli('companies', '--limit', '100')
+        rank = {'Partner': 0, 'Growth': 1, 'Beta': 2, 'Alpha': 3, 'Media Partner': 4, None: 5}
+        keys = [(rank.get(r['tier'], 5), r['name']) for r in rows]
+        self.assertEqual(keys, sorted(keys))
+
+    def test_company_details_sections(self):
+        c = self.run_cli('company', 'company:101575')[0]
+        self.assertTrue(c['sessions'] and c['activities'] and c['endorses'])
+        self.assertTrue(all(s['day'] for s in c['sessions']))
+        self.assertTrue(all('name' not in t for t in c['team']))
+        self.assertEqual(c['id'], 'company:101575')
+        self.assertTrue(all(e['id'] is None or e['id'].startswith('company:') for e in c['endorses']))
+        self.assertNotIn('pitch_deck', json.dumps(c))
+
+    def test_session_details_lists_companies(self):
+        c = self.run_cli('company', '101575')[0]
+        d = self.run_cli('details', c['sessions'][0]['id'])[0]
+        self.assertIn({'id': 'company:101575', 'name': c['name'], 'relation': 'host'}, d['companies'])
+        plain = self.run_cli('search', '--limit', '1')[0]['id']
+        self.assertIn('id', self.run_cli('details', plain)[0])
+
+    def test_company_prefix_and_unknown(self):
+        self.assertEqual(self.run_cli('company', 'company:62217')[0]['id'], 'company:62217')
+        self.run_cli('company', '1', ok=False)
+        self.run_cli('mark', 'company:62217', 'must', ok=False)
+        self.assertFalse(self.state.exists())
+
+    def test_info_counts_companies(self):
+        info = self.run_cli('info')
+        self.assertEqual(info['companies'], 2872)
+        self.assertIn('Seed', info['company_facts'])
+        self.assertIn('Partner', info['company_tiers'])
