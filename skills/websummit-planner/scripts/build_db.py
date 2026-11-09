@@ -13,6 +13,51 @@ from zoneinfo import ZoneInfo
 
 TZ = ZoneInfo("Europe/Lisbon")
 
+COMPANY_SCHEMA = r"""
+-- Company catalog from the Web Summit attendee portal (sanitized: no pitch decks,
+-- no personal LinkedIn links, emails masked in descriptions). Not refreshable offline.
+CREATE TABLE IF NOT EXISTS company (
+  id INTEGER PRIMARY KEY, uuid TEXT, name TEXT NOT NULL, tier TEXT, industry TEXT,
+  country TEXT, location TEXT, description TEXT, website TEXT, logo_url TEXT
+);
+CREATE TABLE IF NOT EXISTS company_tag (
+  company_id INTEGER NOT NULL REFERENCES company(id) ON DELETE CASCADE, tag TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS company_fact (
+  company_id INTEGER NOT NULL REFERENCES company(id) ON DELETE CASCADE,
+  position INTEGER, fact TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS company_link (
+  company_id INTEGER NOT NULL REFERENCES company(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL, url TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS company_person (
+  person_uuid TEXT NOT NULL, company_id INTEGER NOT NULL REFERENCES company(id) ON DELETE CASCADE,
+  role TEXT, tier TEXT, industry TEXT, country TEXT
+);
+CREATE TABLE IF NOT EXISTS company_event (
+  company_id INTEGER NOT NULL REFERENCES company(id) ON DELETE CASCADE,
+  event_uuid TEXT NOT NULL, session_id TEXT REFERENCES session(id) ON DELETE SET NULL,
+  title TEXT, time_text TEXT, location TEXT, type TEXT, description TEXT
+);
+CREATE TABLE IF NOT EXISTS company_event_speaker (
+  company_id INTEGER NOT NULL REFERENCES company(id) ON DELETE CASCADE,
+  event_uuid TEXT NOT NULL, person_uuid TEXT NOT NULL, role TEXT, org TEXT
+);
+CREATE TABLE IF NOT EXISTS company_endorsement (
+  company_id INTEGER NOT NULL REFERENCES company(id) ON DELETE CASCADE,
+  endorsed_company_id INTEGER, endorsed_name TEXT
+);
+CREATE INDEX IF NOT EXISTS company_tag_tag ON company_tag(tag);
+CREATE INDEX IF NOT EXISTS company_fact_fact ON company_fact(fact);
+CREATE INDEX IF NOT EXISTS company_person_company ON company_person(company_id);
+CREATE INDEX IF NOT EXISTS company_person_person ON company_person(person_uuid);
+CREATE INDEX IF NOT EXISTS company_event_session ON company_event(session_id);
+"""
+
+COMPANY_TABLES = ("company", "company_tag", "company_fact", "company_link", "company_person",
+                  "company_event", "company_event_speaker", "company_endorsement")
+
 SCHEMA = r"""
 PRAGMA foreign_keys = ON;
 
@@ -143,7 +188,7 @@ JOIN (SELECT s.*, substr(s.starts_local,12,5) start_t, substr(s.ends_local,12,5)
         AND b.starts_utc < strftime('%Y-%m-%dT%H:%M:%SZ', a.ends_utc, '+' || (SELECT value FROM setting WHERE key='conflict_buffer_min') || ' minutes')
         AND (SELECT CAST(value AS INTEGER) FROM setting WHERE key='conflict_buffer_min') > 0) )
 ORDER BY a.starts_utc, b.starts_utc;
-"""
+""" + COMPANY_SCHEMA
 
 
 def side_upgrade_sql():
@@ -151,6 +196,11 @@ def side_upgrade_sql():
     table = SCHEMA[SCHEMA.index("CREATE TABLE side_event"):SCHEMA.index("CREATE TABLE meta")]
     views = SCHEMA[SCHEMA.index("CREATE VIEW v_titles"):SCHEMA.index("-- Conflicts between")]
     return table + "DROP VIEW IF EXISTS v_titles;\nDROP VIEW IF EXISTS v_session_full;\n" + views
+
+
+def company_upgrade_sql():
+    """DDL that adds company support to a database built before schema_version 3."""
+    return COMPANY_SCHEMA
 
 
 def utc(iso):
@@ -188,7 +238,7 @@ def build(json_path, db_path):
 
     con.execute("INSERT INTO meta VALUES ('built_at', ?)", (datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),))
     con.execute("INSERT INTO meta VALUES ('source', ?)", (os.path.abspath(json_path),))
-    con.execute("INSERT INTO meta VALUES ('schema_version', '2')")
+    con.execute("INSERT INTO meta VALUES ('schema_version', '3')")
 
     # Carry over user data from the previous db.
     carried = 0
