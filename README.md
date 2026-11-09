@@ -94,7 +94,7 @@ python3 -m unittest discover -s tests -v
 
 Tests use temporary personal databases and install destinations. GitHub Actions runs them on Linux, macOS, and Windows. Native agent discovery still depends on the installed agent version and session.
 
-When sharing or forking, keep `skills/websummit-planner` intact and do not add your personal database. Code and instructions are MIT licensed; event content is attributed separately in [DATA_NOTICE.md](DATA_NOTICE.md). This is an unofficial independent tool.
+When sharing or forking, keep `skills/websummit-planner` intact and do not add your personal database. Code and instructions in the skill are MIT licensed (the MCP service is Apache-2.0, see [License](#license)); event content is attributed separately in [DATA_NOTICE.md](DATA_NOTICE.md). This is an unofficial independent tool.
 
 Skill format and installation references: [OpenAI skills](https://developers.openai.com/plugins/build/skills), [OpenAI agent installation paths](https://developers.openai.com/api/reference/cli), [Claude Code skills](https://code.claude.com/docs/en/skills).
 
@@ -126,3 +126,9 @@ It offers `search_companies` and `company_details` next to the session tools (v2
 `mcp-worker/` is the legacy Cloudflare worker; it is kept for reference and has no company support.
 Use `/health` for the public health endpoint. Hosting uses Iowa, scale-to-zero and
 128 MiB memory; images are built locally and Cloud Build is disabled.
+
+## License
+
+- **Skill** (`skills/websummit-planner/`, `install.py`, `tests/`, docs): [MIT](LICENSE). Installing the skill needs nothing from `service/`; the installer copies only the skill folder.
+- **MCP service** (`service/`, `Dockerfile`, `.dockerignore`, `.gcloudignore`, `tools/deploy_gcp.sh`, `tools/check_service.py`, `.github/workflows/service.yml`): [Apache-2.0](service/LICENSE).
+- **Event data**: licensed under neither; see [DATA_NOTICE.md](DATA_NOTICE.md). This applies to `service/testdata/` and to the snapshot baked into the Docker image.

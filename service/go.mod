@@ -1,4 +1,4 @@
-module github.com/slava/websummit-planner/service
+module github.com/medvedev/websummit-planner/service
 
 go 1.27.0
 
