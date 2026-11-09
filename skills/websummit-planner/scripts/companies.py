@@ -132,7 +132,7 @@ def session_companies(con, session_id):
         UNION
         SELECT c.id, c.name, 'speaker' FROM session_person sp JOIN company_person cp ON cp.person_uuid=sp.person_id
          JOIN company c ON c.id=cp.company_id WHERE sp.session_id=?1
-        ORDER BY 3 DESC, 2, 1""", (session_id,))
+        ORDER BY 3, 2, 1""", (session_id,))
     return [{'id': _cid(r['id']), 'name': r['name'], 'relation': r['relation']} for r in rows]
 
 

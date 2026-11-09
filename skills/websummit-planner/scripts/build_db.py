@@ -204,13 +204,13 @@ def company_upgrade_sql():
 
 
 def carry_companies(con, alias):
-    """Copy company tables from an attached database; session_id survives only if the session exists."""
+    """Copy company tables from an attached database; session_id is re-derived from event_uuid (set only if that session exists)."""
     if not con.execute(f"SELECT 1 FROM {alias}.sqlite_master WHERE name='company'").fetchone():
         return False
     for t in COMPANY_TABLES:
         if t == "company_event":
             con.execute(f"INSERT OR IGNORE INTO company_event(company_id,event_uuid,session_id,title,time_text,location,type,description) "
-                        f"SELECT company_id,event_uuid,(SELECT id FROM main.session WHERE id=e.session_id),title,time_text,location,type,description "
+                        f"SELECT company_id,event_uuid,(SELECT id FROM main.session WHERE id=e.event_uuid),title,time_text,location,type,description "
                         f"FROM {alias}.company_event e")
         else:
             con.execute(f"INSERT OR IGNORE INTO {t} SELECT * FROM {alias}.{t}")

@@ -1,6 +1,6 @@
 ---
 name: websummit-planner
-description: Search the Web Summit Lisbon 2026 schedule and community side events, explore sessions and speakers, maintain a personal shortlist, and check timing and travel conflicts locally. Use for planning attendance on 9–12 November 2026.
+description: Search the Web Summit Lisbon 2026 schedule, community side events and the 2,872 companies/startups/exhibitors (by sector, funding stage, fundraising status), explore sessions and speakers, link companies to sessions, maintain a personal shortlist, and check timing and travel conflicts locally. Use for planning attendance on 9–12 November 2026.
 ---
 
 Use the bundled offline SQLite snapshot through `scripts/planner.py`. Requires a usable Python 3.9+ runtime with SQLite and Europe/Lisbon timezone data. The user does not need Python preinstalled: [references/setup.md](references/setup.md) covers a user-owned managed runtime. After setup, no server, API key, or network access is needed for planning.
