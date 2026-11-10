@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"runtime/debug"
 	"syscall"
 	"time"
 )
@@ -38,7 +37,6 @@ func main() {
 		log.Fatalf("load companies: %v", err) // company tools are part of the contract
 	}
 	d.WithCompanies(companies)
-	debug.FreeOSMemory() // return the transient load buffers (snapshot + catalog JSON) to the OS
 	srv := &http.Server{
 		Addr:              net.JoinHostPort("", env("PORT", "8080")),
 		Handler:           NewHandler(d),

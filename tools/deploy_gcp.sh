@@ -24,6 +24,8 @@ fi
 gcloud run deploy websummit-planner --project "$project" --region "$region" \
   --image "$digest" --allow-unauthenticated --port 8080 \
   --service-account "websummit-runtime@${project}.iam.gserviceaccount.com" \
-  --execution-environment gen1 --cpu 1 --memory 128Mi --concurrency 32 \
-  --min 0 --max 2 --min-instances 0 --max-instances 2 --timeout 15 \
-  --cpu-throttling --cpu-boost --quiet
+  --execution-environment gen1 --cpu 2 --memory 128Mi --concurrency 128 \
+  --min-instances 0 --max-instances 3 --timeout 10 \
+  --cpu-throttling --cpu-boost \
+  --startup-probe 'tcpSocket.port=8080,timeoutSeconds=1,periodSeconds=1,failureThreshold=5' \
+  --quiet
