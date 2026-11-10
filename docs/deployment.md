@@ -51,6 +51,11 @@ listens only after the snapshot loads, so an open port means ready. Probe outcom
 Cloud Logging (textPayload "STARTUP TCP probe succeeded after N attempt"), not as a console chart.
 GOMEMLIMIT=64MiB is a Go soft target. Measure production memory and latency before changing limits. Local measurements are in service-performance.md.
 
+**Policy: never set min instances to 1 (or higher).** Keep `--min-instances 0` (scale to zero) at
+both service and revision level, on every deploy and in the console. The owner has ruled out an
+always-warm instance for cost reasons; accept the roughly 0.5-0.7 s cold start measured in
+service-performance.md. Do not propose or apply min-instances as a fix for startup time.
+
 ## Optional GitHub deployment
 
 service.yml verifies Go/race tests, HTTP/Python conflict parity and the Docker image.
