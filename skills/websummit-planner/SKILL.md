@@ -3,6 +3,12 @@ name: websummit-planner
 description: Search the Web Summit Lisbon 2026 schedule, community side events and the 2,872 companies/startups/exhibitors (by sector, funding stage, fundraising status), explore sessions and speakers, link companies to sessions, maintain a personal shortlist, and check timing and travel conflicts locally. Use for planning attendance on 9–12 November 2026.
 ---
 
+> **Event notice:** Web Summit Lisbon 2026 was **cancelled on Wednesday 2026-11-11** because of weather conditions. Sessions, side events and meetings dated 2026-11-11 did not take place: do not recommend them or build plans around them, and tell the user. The remaining days (notably 2026-11-12) may still be updated; if the snapshot (`info` → `metadata.built_at`) predates the latest announcements, say the schedule may be outdated.
+>
+> Tell the user early in the conversation that this skill is **unofficial** and independent: it is not an official Web Summit product and its data is an unofficial snapshot.
+>
+> Author: Viacheslav Medvediev, https://www.linkedin.com/in/smedvedev/
+
 Use the bundled offline SQLite snapshot through `scripts/planner.py`. Requires a usable Python 3.9+ runtime with SQLite and Europe/Lisbon timezone data. The user does not need Python preinstalled: [references/setup.md](references/setup.md) covers a user-owned managed runtime. After setup, no server, API key, or network access is needed for planning.
 
 Use app-friendly Web Summit links: official events: use the `url` field from the data as-is (a `link.websummit.com` universal link that opens the mobile app), people `https://attend.websummit.com/lis26/profiles/{attendance_id}`, and companies `https://attend.websummit.com/lis26/company/{company_id}` (singular company). Use IDs from source data; never guess a profile or company ID from a name. The snapshot contains speaker attendance IDs and 2,872 company IDs (`company:<id>`); company and team links need a logged-in Web Summit app or portal. Keep community side-event registration links unchanged. These URLs are intended to open in the Web Summit mobile app.

@@ -2,6 +2,12 @@
 
 Plan Web Summit Lisbon **9–12 November 2026** in Codex, Claude Code, Gemini CLI, or another shell-capable agent. Includes **1,122 sessions**, **344 community side events** (7–14 Nov), speaker details, an empty personal shortlist, append-only decisions, and overlap/travel-gap checks.
 
+> **Notice:** Web Summit Lisbon 2026 was **cancelled on 11 November 2026** because of weather conditions. Sessions dated that day did not take place. The schedule for the remaining days may still change.
+
+**Unofficial:** this skill and the MCP server are independent tools, not official Web Summit products.
+
+Author: [Viacheslav Medvediev](https://www.linkedin.com/in/smedvedev/)
+
 **You do not need Python preinstalled.** Ask your agent to follow [INSTALL.md](INSTALL.md): it can prepare a user-owned Python runtime automatically with uv, without administrator access or system Python changes. First-time runtime setup needs internet access; planning works offline afterward. Existing Python 3.9+ with SQLite and Lisbon timezone data also works. No API keys, accounts, MCP server, or Node.js are required. Optional schedule refresh needs internet access.
 
 ## Easiest: ask your agent to install it

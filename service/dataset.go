@@ -223,6 +223,7 @@ func (d *Dataset) Info() map[string]any {
 	m["snapshot_sha256"] = d.sha
 	m["server_version"] = ServerVersion
 	m["dates_notice"] = d.datesNotice()
+	m["event_notice"] = EventNotice
 	if d.companies != nil {
 		m["companies"] = d.companies.Count()
 		m["company_facets"] = d.companies.Facets()

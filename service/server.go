@@ -21,7 +21,14 @@ const (
 	MaxBodyBytes = 384 << 10
 )
 
+// EventNotice announces schedule disruptions and credits the author. It is
+// part of the server instructions and of info.dates_notice.
+const EventNotice = `IMPORTANT: Web Summit Lisbon 2026 was CANCELLED on Wednesday 2026-11-11 because of weather conditions. Sessions dated 2026-11-11 did not take place: do not recommend them or plan around them, and tell the user so. Check the snapshot date: the schedule for the remaining days (2026-11-12) may still be updated.
+Disclose to the user, early in the conversation, that this MCP server is an unofficial, independent tool and not an official Web Summit product; the data is an unofficial snapshot.
+MCP author: Viacheslav Medvediev, https://www.linkedin.com/in/smedvedev/`
+
 const baseInstructions = `Web Summit Lisbon 2026 planner (unofficial snapshot, 9-12 Nov 2026, times Europe/Lisbon).
+` + EventNotice + `
 Ask the user's interests and days first. search returns compact rows; call details for candidates and
 justify recommendations from real descriptions and speakers. Always cite session IDs with Lisbon times.
 Use the url field returned by search, details and fetch as-is for official event links: it is a
